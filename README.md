@@ -1,8 +1,8 @@
 # Endgame
 
 <p>  
-<a href="https://crates.io/crates/knoll"><img src="https://img.shields.io/crates/v/endgame?style=flat-square" alt="Crates.io version" /></a>
-<img src="https://img.shields.io/github/license/gawashburn/knoll" alt="MIT License" />
+<a href="https://crates.io/crates/endgame"><img src="https://img.shields.io/crates/v/endgame?style=flat-square" alt="Crates.io version" /></a>
+<img src="https://img.shields.io/github/license/gawashburn/endgame" alt="MIT License" />
 </p>
 
 The Endgame library is a turn-based game engine, but not a Game Engine. There
