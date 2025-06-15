@@ -3,8 +3,17 @@ name = "endgame"
 description = "A turn-based game engine."
 authors = ["Geoffrey Washburn <geoff@washburght.org>"]
 version = "0.1.0"
+keywords = ["game", "engine", "gamedev"]
 license = "MIT"
 repository = "https://github.com/gawashburn/endgame"
-edition = "2024"
+exclude = ["crates/"]
+rust-version = "1.86.0"
+
+[workspace]
+resolver = "2"
+members = [
+    "crates/*"
+]
 
 [dependencies]
+endgame_direction = { path = "crates/endgame_direction" }

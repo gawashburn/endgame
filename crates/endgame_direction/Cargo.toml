@@ -1,0 +1,12 @@
+[package]
+name = "endgame_direction"
+description = "A library for representing cardinal and ordinal directions."
+authors = ["Geoffrey Washburn <geoff@washburght.org>"]
+version = "0.1.0"
+edition = "2024"
+repository = "https://github.com/gawashburn/endgame"
+license = "MIT"
+
+[dependencies]
+bitset-core = "0.1"
+serde = { version = "1.0", features = ["derive"] }

@@ -1,8 +1,13 @@
-# endgame
+# Endgame
 
-The endgame library is a turn-based game engine, but not a Game Engine. There
+<p>  
+<a href="https://crates.io/crates/knoll"><img src="https://img.shields.io/crates/v/endgame?style=flat-square" alt="Crates.io version" /></a>
+<img src="https://img.shields.io/github/license/gawashburn/knoll" alt="MIT License" />
+</p>
+
+The Endgame library is a turn-based game engine, but not a Game Engine. There
 plenty of quality Game Engines out there for handling your graphics, audio,
-input, networking, and so forth. The endgame library is instead an engine
+input, networking, and so forth. The Endgame library is instead an engine
 and tools for helping you build out and test your game mechanics.  It could 
 even be paired with a Game Engine to flesh out the rest of your game.
 

@@ -9,13 +9,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f421f1bcb30aa9d851a03c2920ab5d96ca920d5786645a597b5fc37922f8b89e"
 
 [[package]]
-name = "endgame"
-version = "0.1.0"
-dependencies = [
- "endgame_direction",
-]
-
-[[package]]
 name = "endgame_direction"
 version = "0.1.0"
 dependencies = [
