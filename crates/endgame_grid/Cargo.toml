@@ -1,0 +1,15 @@
+[package]
+name = "endgame_grid"
+description = "A library for representing regular grids."
+authors = ["Geoffrey Washburn <geoff@washburght.org>"]
+repository = "https://github.com/gawashburn/endgame"
+license = "MIT"
+version = "0.1.0"
+edition = "2024"
+
+[dev-dependencies]
+proptest = "1.0.0"
+
+[dependencies]
+endgame_direction = { path = "../endgame_direction", version = "0.2" }
+glam = { version = "0.30", features = ["serde", "mint"] }
