@@ -14,7 +14,8 @@ edition = "2024"
 resolver = "2"
 members = [
     "crates/*",
-    "examples/*"
+    # Examples have not yet been migrated.
+    #    "examples/*"
 ]
 
 [dependencies]
