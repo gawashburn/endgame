@@ -7,12 +7,14 @@ keywords = ["game", "engine", "gamedev"]
 license = "MIT"
 repository = "https://github.com/gawashburn/endgame"
 exclude = ["crates/"]
-rust-version = "1.86.0"
+edition = "2024"
+
 
 [workspace]
 resolver = "2"
 members = [
-    "crates/*"
+    "crates/*",
+    "examples/*"
 ]
 
 [dependencies]
