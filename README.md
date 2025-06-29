@@ -3,8 +3,7 @@
 <p>  
 <a href="https://crates.io/crates/endgame"><img src="https://img.shields.io/crates/v/endgame?style=flat-square" alt="Crates.io version" /></a>
 <img src="https://github.com/gawashburn/endgame/actions/workflows/tests.yml/badge.svg" alt="Testing action" />
-<a href='https://coveralls.io/github/gawashburn/endgame?branch=master'><img src='https://coveralls.io/repos/github/gawashburn/endgame/badge.svg?
-       │ branch=main' alt='Coverage Status' /></a>
+<a href='https://coveralls.io/github/gawashburn/endgame?branch=master'><img src='https://coveralls.io/repos/github/gawashburn/endgame/badge.svg?branch=main' alt='Coverage Status' /></a>
 <img src="https://img.shields.io/github/license/gawashburn/endgame" alt="MIT License" />
 </p>
 
