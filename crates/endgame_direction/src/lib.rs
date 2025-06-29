@@ -1,19 +1,22 @@
 //! A simple implementation of cardinal and ordinal directions, as the
-//! canonical 'direction' crate bakes in some notions of coordinates that
+//! canonical `direction` crate bakes in some notions of coordinates that
 //! seem better separated to allow for different grid systems.
+
 use bitset_core::BitSet;
 use serde::{Deserialize, Serialize};
+use std::borrow::Borrow;
 use std::fmt::Display;
 
 //////////////////////////////////////////////////////////////////////////////
 
 /// An enumeration of compass directions.  The traditional "cardinal" directions,
 /// along the "ordinal" ones as well.
+///
+/// We use a counter-clockwise ordering starting at East, so that it aligns
+/// well with radian angles.
 #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug, Serialize, Deserialize)]
 #[repr(u8)]
 pub enum Direction {
-    // Use a counter-clockwise ordering starting at East, so that
-    // it aligns well with radian angles.
     East = 0,
     NorthEast = 1,
     North = 2,
@@ -42,25 +45,26 @@ impl Display for Direction {
 }
 
 impl Direction {
-    /// A reference to the set of all possible directions.
-    pub const VALUES: DirectionSet  = DirectionSet(0b11111111);
+    /// A reference to the set of all possible `Direction`s.
+    pub const VALUES: &'static DirectionSet = &DirectionSet(0b11111111);
 
-    /// A reference to the set of cardinal directions.
-    pub const CARDINAL: DirectionSet = DirectionSet(0b01010101);
+    /// A reference to the set of cardinal `Direction`s.
+    pub const CARDINAL: &'static DirectionSet = &DirectionSet(0b01010101);
 
-    /// A reference to the set of ordinal directions.
-    pub const ORDINAL: DirectionSet = DirectionSet(0b10101010);
+    /// A reference to the set of ordinal `Direction`s.
+    pub const ORDINAL: &'static DirectionSet = &DirectionSet(0b10101010);
 
-    /// Is this a cardinal direction?
+    /// Is this a cardinal `Direction`?
     pub fn is_cardinal(self) -> bool {
         Direction::CARDINAL.0.bit_test(self as usize)
     }
 
-    /// Is this an ordinal direction?
+    /// Is this an ordinal `Direction`?
     pub fn is_ordinal(self) -> bool {
         Direction::ORDINAL.0.bit_test(self as usize)
     }
 
+    /// Convert a `u8` value to a `Direction`.
     fn from_u8(value: u8) -> Direction {
         use Direction::*;
         match value {
@@ -72,26 +76,26 @@ impl Direction {
             5 => SouthWest,
             6 => South,
             7 => SouthEast,
-            _ => panic!("Invalid direction value: {}", value),
+            _ => panic!("Invalid direction value: {value}"),
         }
     }
 
-    /// Produce the Direction clockwise from this Direction.
+    /// Produce the `Direction` clockwise from this `Direction`.
     pub fn clockwise(self) -> Direction {
         Direction::from_u8((self as u8).overflowing_sub(1).0 % 8)
     }
 
-    /// Produce the Direction counter-clockwise from this Direction.
+    /// Produce the `Direction` counter-clockwise from this `Direction`.
     pub fn counter_clockwise(self) -> Direction {
         Direction::from_u8((self as u8).overflowing_add(1).0 % 8)
     }
 
-    /// The opposite Direction from this Direction.
+    /// The opposite `Direction` from this `Direction`.
     pub fn opposite(self) -> Direction {
         Direction::from_u8(((self as u8) + 4) % 8)
     }
 
-    /// The angle of the direction in radians.
+    /// The angle of this `Direction` in radians.
     pub fn angle(self) -> f32 {
         (self as u8 as f32) * (std::f32::consts::PI / 4.0)
     }
@@ -106,9 +110,10 @@ impl std::ops::Not for Direction {
 
 //////////////////////////////////////////////////////////////////////////////
 
-/// A structure representing a set of directions.  Conveniently, this `Direction`
-/// only models eight possible directions, so it is possible to efficiently
-/// represent a set of directions as bitset with just a single byte.
+/// A structure representing a set of directions.  Conveniently, this crate's
+/// `Direction` type only models eight possible directions, so it is possible
+/// to efficiently represent a set of directions as bitset with just a single
+/// byte.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DirectionSet(u8);
 
@@ -127,6 +132,7 @@ impl Display for DirectionSet {
     }
 }
 
+/// An iterator for visiting all directions in a `DirectionSet`.
 pub struct DirectionSetIter<'a> {
     set: &'a DirectionSet,
     index: u8,
@@ -160,13 +166,22 @@ impl Iterator for DirectionSetIter<'_> {
     }
 }
 
-// TODO IntoIterator from a DirectionSet value?
 impl<'a> IntoIterator for &'a DirectionSet {
     type Item = Direction;
     type IntoIter = DirectionSetIter<'a>;
 
     fn into_iter(self) -> Self::IntoIter {
         DirectionSetIter::new(&self)
+    }
+}
+
+impl FromIterator<Direction> for DirectionSet {
+    fn from_iter<I: IntoIterator<Item = Direction>>(iter: I) -> Self {
+        let mut set = DirectionSet::new();
+        for dir in iter {
+            set.insert(dir);
+        }
+        set
     }
 }
 
@@ -184,32 +199,51 @@ impl DirectionSet {
         }
         DirectionSet(v)
     }
-    
+
     /// Create an empty `DirectionSet`.
-    pub const fn empty() -> DirectionSet {
+    pub const fn new() -> DirectionSet {
         DirectionSet(0)
     }
-    
+
+    /// Inser the given `Direction` into the `DirectionSet`.
+    pub fn insert(&mut self, dir: Direction) -> bool {
+        let contains = self.contains(dir);
+        self.0.bit_set(dir as usize);
+        !contains
+    }
+
+    /// Remove the given `Direction` from the `DirectionSet`.
+    pub fn remove(&mut self, dir: Direction) -> bool {
+        let contains = self.contains(dir);
+        self.0.bit_reset(dir as usize);
+        contains
+    }
+
     /// Is this `DirectionSet` a superset of the other?
-    pub fn superset(&self, other: DirectionSet) -> bool {
-        self.0.bit_superset(&other.0)
+    pub fn is_superset<T: Borrow<DirectionSet>>(&self, other: T) -> bool {
+        self.0.bit_superset(&other.borrow().0)
     }
-    
-    /// Is this 1DirectionSet1 a subset of the other?
-    pub fn subset(&self, other: DirectionSet) -> bool {
-        self.0.bit_subset(&other.0)
+
+    /// Is this 1DirectionSet` a subset of the other?
+    pub fn is_subset<T: Borrow<DirectionSet>>(&self, other: T) -> bool {
+        self.0.bit_subset(&other.borrow().0)
     }
-    
+
     /// Return the intersection of this `DirectionSet` with another.
-    pub fn intersection(&self, other: DirectionSet) -> DirectionSet {
+    pub fn intersection<T: Borrow<DirectionSet>>(&self, other: T) -> DirectionSet {
         let mut v = self.0;
-        DirectionSet(*v.bit_and(&other.0))
+        DirectionSet(*v.bit_and(&other.borrow().0))
     }
-    
-    /// Return the union of this `DirectionSet` with another.
-    pub fn union(&self, other: DirectionSet) -> DirectionSet {
+
+    pub fn difference<T: Borrow<DirectionSet>>(&self, other: T) -> DirectionSet {
         let mut v = self.0;
-        DirectionSet(*v.bit_or(&other.0))
+        DirectionSet(*v.bit_andnot(&other.borrow().0))
+    }
+
+    /// Return the union of this `DirectionSet` with another.
+    pub fn union<T: Borrow<DirectionSet>>(&self, other: T) -> DirectionSet {
+        let mut v = self.0;
+        DirectionSet(*v.bit_or(&other.borrow().0))
     }
 
     /// Return the number of `Direction`s in the set.
