@@ -1,9 +1,8 @@
-use crate::{GridCoord, Point, SizedGrid};
+use crate::{Coord, DirectionType, Point, SizedGrid};
 use endgame_direction::{Direction, DirectionSet};
 use glam::{ivec2, ivec3, IVec2, IVec3, Vec2};
 use std::f32::consts::PI;
 use std::fmt::Display;
-use std::ops::Not;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 /// Specify which direction the triangle is pointing.
@@ -25,7 +24,26 @@ impl TrianglePoint {
     }
 }
 
-impl Not for TrianglePoint {
+impl std::ops::BitAnd for TrianglePoint {
+    type Output = TrianglePoint;
+
+    fn bitand(self, other: Self) -> Self::Output {
+        use TrianglePoint::*;
+        match (self, other) {
+            (Up, _) => other,
+            (_, Up) => self,
+            _ => self.opposite(),
+        }
+    }
+}
+
+impl std::ops::BitAndAssign for TrianglePoint {
+    fn bitand_assign(&mut self, other: Self) {
+        *self = *self & other;
+    }
+}
+
+impl std::ops::Not for TrianglePoint {
     type Output = TrianglePoint;
 
     fn not(self) -> Self::Output {
@@ -61,11 +79,14 @@ impl Display for TrianglePoint {
 /// I found that I could not directly make use fo his pseudocode.  So
 /// some revisions, particular for clarity have been made.
 #[derive(Eq, PartialEq, Hash, Clone, Copy, Debug)]
-pub struct TriangleGridCoord(IVec2, TrianglePoint);
+pub struct TriangleCoord(IVec2, TrianglePoint);
 
 /// Allowed movement `Direction`s for a triangular grid depends on the
 /// triangle's orientation.  This a `DirectionSet` for upward facing
 /// triangles.
+///
+/// There is no need for separate vertex directions as they just correspond to
+/// the triangle point being inverted.
 const ALLOWED_DIRECTIONS_UP: DirectionSet = {
     use Direction::*;
     DirectionSet::from_slice(&[NorthEast, South, NorthWest])
@@ -74,27 +95,32 @@ const ALLOWED_DIRECTIONS_UP: DirectionSet = {
 /// Allowed movement `Direction`s for a triangular grid depends on the
 /// triangle's orientation.  This a `DirectionSet` for downward facing
 /// triangles.
+///
+/// There is need for separate vertex directions as they just correspond to
+/// the triangle point being inverted.
+// TODO Simplify as this is just the negation of the `Direction`s in
+// `ALLOWED_DIRECTIONS_UP`.
 const ALLOWED_DIRECTIONS_DOWN: DirectionSet = {
     use Direction::*;
     DirectionSet::from_slice(&[North, SouthEast, SouthWest])
 };
 
-impl TriangleGridCoord {
+impl TriangleCoord {
     /// Does this `TriangleGridCoord` represent an upward facing triangle?
-    pub fn up(&self) -> bool {
+    pub fn is_up(&self) -> bool {
         self.1 == TrianglePoint::Up
     }
 
     /// Construct a new `TriangleGridCoord` from x and y coordinates and a
     /// `TrianglePoint` indicating which direction the triangle is pointing.
     pub const fn new(x: i32, y: i32, point: TrianglePoint) -> Self {
-        TriangleGridCoord(ivec2(x, y), point)
+        TriangleCoord(ivec2(x, y), point)
     }
 
     /// Construct a new `TriangleGridCoord` from an `IVec2` coordinate and a
     /// `TrianglePoint` indicating which direction the triangle is pointing.
     pub const fn from_ivec2(coord: IVec2, point: TrianglePoint) -> Self {
-        TriangleGridCoord(coord, point)
+        TriangleCoord(coord, point)
     }
 
     /// Internal helper to convert a cubical coordinate into a `TriangleGridCoord`.
@@ -110,7 +136,7 @@ impl TriangleGridCoord {
         let z = coord.z;
         let x = z_offset - coord.y - z;
         let y = z_offset - coord.x - z;
-        TriangleGridCoord(IVec2::new(x, y), if up { Up } else { Down })
+        TriangleCoord(IVec2::new(x, y), if up { Up } else { Down })
     }
 
     /// Internal helper to convert a `TriangleGridCoord` into the cube
@@ -135,14 +161,72 @@ impl TriangleGridCoord {
     }
 }
 
-impl Display for TriangleGridCoord {
+impl Default for TriangleCoord {
+    fn default() -> Self {
+        TriangleCoord(ivec2(0, 0), TrianglePoint::Up)
+    }
+}
+
+impl Display for TriangleCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({},{},{})", self.0.x, self.0.y, self.1)
     }
 }
 
-impl GridCoord for TriangleGridCoord {
-    fn angle_to_direction(&self, angle: f32) -> Direction {
+impl std::ops::Neg for TriangleCoord {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        TriangleCoord(-self.0, self.1)
+    }
+}
+
+impl std::ops::Add for TriangleCoord {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        TriangleCoord(self.0 + other.0, self.1 & other.1)
+    }
+}
+
+impl std::ops::Sub for TriangleCoord {
+    type Output = Self;
+
+    fn sub(self, other: Self) -> Self {
+        TriangleCoord(self.0 - other.0, self.1 & other.1)
+    }
+}
+
+impl std::ops::AddAssign for TriangleCoord {
+    fn add_assign(&mut self, other: Self) {
+        self.0 += other.0;
+        self.1 &= other.1;
+    }
+}
+
+impl<'a> std::ops::AddAssign<&'a TriangleCoord> for TriangleCoord {
+    fn add_assign(&mut self, other: &Self) {
+        self.0 += other.0;
+        self.1 &= other.1;
+    }
+}
+
+impl std::ops::SubAssign for TriangleCoord {
+    fn sub_assign(&mut self, other: Self) {
+        self.0 -= other.0;
+        self.1 &= other.1;
+    }
+}
+
+impl<'a> std::ops::SubAssign<&'a TriangleCoord> for TriangleCoord {
+    fn sub_assign(&mut self, other: &Self) {
+        self.0 -= other.0;
+        self.1 &= other.1;
+    }
+}
+
+impl Coord for TriangleCoord {
+    fn angle_to_direction(&self, dir_type: DirectionType, angle: f32) -> Direction {
         use Direction::*;
         use TrianglePoint::*;
         // We can ignore the coordinate, as angle to direction mapping
@@ -153,7 +237,15 @@ impl GridCoord for TriangleGridCoord {
         assert!(norm_angle.is_sign_positive());
         let dodecant = norm_angle / (PI / 6.0);
 
-        match self.1 {
+        // For the vertex directions, we can simply use the angles for the
+        // triangle facing the opposite direction.
+        let point = if dir_type == DirectionType::Vertex {
+            !self.1 // Invert the triangle point for vertex directions.
+        } else {
+            self.1
+        };
+
+        match point {
             Up => {
                 if dodecant >= 11.0 || dodecant < 3.0 {
                     NorthEast
@@ -177,11 +269,19 @@ impl GridCoord for TriangleGridCoord {
         }
     }
 
-    fn direction_angle(&self, dir: Direction) -> Option<f32> {
+    fn direction_angle(&self, dir_type: DirectionType, dir: Direction) -> Option<f32> {
         use Direction::*;
         use TrianglePoint::*;
 
-        Some(match self.1 {
+        // For the vertex directions, we can simply use the angles for the
+        // triangle facing the opposite direction.
+        let point = if dir_type == DirectionType::Vertex {
+            !self.1 // Invert the triangle point for vertex directions.
+        } else {
+            self.1
+        };
+
+        Some(match point {
             Up => match dir {
                 NorthEast => PI / 6.0,
                 NorthWest => 5.0 * PI / 6.0,
@@ -197,34 +297,58 @@ impl GridCoord for TriangleGridCoord {
         })
     }
 
-    fn move_in_direction(&self, dir: Direction) -> Option<Self> {
+    fn offset_in_direction(&self, dir_type: DirectionType, dir: Direction) -> Option<Self> {
         use Direction::*;
-
-        let offset = match self.1 {
-            TrianglePoint::Up => match dir {
-                NorthEast => ivec2(0, 0),
-                South => ivec2(0, -1),
-                NorthWest => ivec2(-1, 0),
-                _ => return None,
-            },
-            TrianglePoint::Down => match dir {
-                North => ivec2(0, 1),
-                SouthEast => ivec2(1, 0),
-                SouthWest => ivec2(0, 0),
-                _ => return None,
-            },
-        };
-        Some(TriangleGridCoord(self.0 + offset, !self.1))
-    }
-
-    fn allowed_direction(&self, dir: Direction) -> bool {
-        self.allowed_directions().contains(dir)
-    }
-
-    fn allowed_directions(&self) -> DirectionSet {
+        use DirectionType::*;
         use TrianglePoint::*;
 
-        match self.1 {
+        let offset = match dir_type {
+            Face => match self.1 {
+                Up => match dir {
+                    NorthEast => ivec2(0, 0),
+                    South => ivec2(0, -1),
+                    NorthWest => ivec2(-1, 0),
+                    _ => return None,
+                },
+                Down => match dir {
+                    North => ivec2(0, 1),
+                    SouthEast => ivec2(1, 0),
+                    SouthWest => ivec2(0, 0),
+                    _ => return None,
+                },
+            },
+            Vertex => match self.1 {
+                Up => match dir {
+                    North => ivec2(-1, 1),
+                    SouthEast => ivec2(1, -1),
+                    SouthWest => ivec2(-1, -1),
+                    _ => return None,
+                },
+                Down => match dir {
+                    South => ivec2(1, -1),
+                    NorthWest => ivec2(-1, 1),
+                    NorthEast => ivec2(1, 1),
+                    _ => return None,
+                },
+            },
+        };
+
+        Some(TriangleCoord(offset, Down))
+    }
+
+    fn allowed_direction(&self, dir_type: DirectionType, dir: Direction) -> bool {
+        self.allowed_directions(dir_type).contains(dir)
+    }
+
+    fn allowed_directions(&self, dir_type: DirectionType) -> DirectionSet {
+        use TrianglePoint::*;
+
+        let mut point = self.1;
+        if dir_type == DirectionType::Vertex {
+            point = !point; // Invert the triangle point for vertex directions.
+        }
+
+        match point {
             Up => ALLOWED_DIRECTIONS_UP,
             Down => ALLOWED_DIRECTIONS_DOWN,
         }
@@ -245,7 +369,7 @@ impl GridCoord for TriangleGridCoord {
         use TrianglePoint::*;
         let remainder = array_offset.0.rem_euclid(2) as i32;
         let point = if remainder == 0 { Up } else { Down };
-        TriangleGridCoord::new(
+        TriangleCoord::new(
             (array_offset.0 as i32 - remainder) / 2,
             array_offset.1 as i32,
             point,
@@ -262,10 +386,6 @@ pub struct TriangleSizedGrid {
 }
 
 impl TriangleSizedGrid {
-    pub const fn new(inradius: f32) -> Self {
-        TriangleSizedGrid { inradius }
-    }
-
     /// The basis vector for the "A" lane of the triangle grid.
     fn a_basis() -> Vec2 {
         Vec2::from_angle(11.0 * PI / 6.0)
@@ -283,7 +403,11 @@ impl TriangleSizedGrid {
 }
 
 impl SizedGrid for TriangleSizedGrid {
-    type Coord = TriangleGridCoord;
+    type Coord = TriangleCoord;
+
+    fn new(inradius: f32) -> Self {
+        TriangleSizedGrid { inradius }
+    }
 
     fn inradius(&self) -> f32 {
         self.inradius
@@ -295,6 +419,24 @@ impl SizedGrid for TriangleSizedGrid {
 
     fn edge_length(&self) -> f32 {
         6.0 * self.inradius / 3.0f32.sqrt()
+    }
+
+    fn vertices(&self, coord: Self::Coord) -> Vec<Point> {
+        use TrianglePoint::*;
+        let start_angle = match coord.1 {
+            Up => PI / 2.0,
+            Down => PI / 6.0,
+        };
+
+        let center = self.grid_to_screen(coord);
+
+        (0..3)
+            .map(|i| {
+                center
+                    + Vec2::from_angle(start_angle + i as f32 * (2.0 * PI / 3.0))
+                        * self.circumradius()
+            })
+            .collect()
     }
 
     fn grid_to_screen(&self, coord: Self::Coord) -> Point {
@@ -322,7 +464,7 @@ impl SizedGrid for TriangleSizedGrid {
         let b_component = TriangleSizedGrid::b_basis().dot(offset_point);
         let c_component = TriangleSizedGrid::c_basis().dot(offset_point);
 
-        TriangleGridCoord::from_cubical(ivec3(
+        TriangleCoord::from_cubical(ivec3(
             (a_component / height).ceil() as i32,
             (b_component / height).ceil() as i32,
             (c_component / height).ceil() as i32,
