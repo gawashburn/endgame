@@ -90,6 +90,12 @@ impl Direction {
         Direction::from_u8((self as u8).overflowing_add(1).0 % 8)
     }
 
+    /// Rotate this `Direction` by the given number of steps.  Positivesteps
+    /// rotate clockwise, negative steps rotate counter-clockwise.
+    pub fn rotate(self, steps: isize) -> Direction {
+        Direction::from_u8((self as isize).overflowing_sub(steps).0.rem_euclid(8) as u8)
+    }
+
     /// The opposite `Direction` from this `Direction`.
     pub fn opposite(self) -> Direction {
         Direction::from_u8(((self as u8) + 4) % 8)

@@ -121,6 +121,30 @@ fn test_direction_rotation() {
             "clockwise and counter-clockwise on {} are not inverses.",
             dir
         );
+
+        assert_eq!(
+            dir.rotate(1),
+            dir.clockwise(),
+            "Rotating by a single step should be equivalent to rotating clockwise.",
+        );
+
+        assert_eq!(
+            dir.rotate(-1),
+            dir.counter_clockwise(),
+            "Rotating by negative step should be equivalent to rotating counter-clockwise.",
+        );
+
+        assert_eq!(
+            dir.rotate(8),
+            dir,
+            "Rotating by eight steps should be an identity.",
+        );
+
+        assert_eq!(
+            dir.rotate(-8),
+            dir,
+            "Rotating by negative eight steps should be an identity.",
+        );
     }
 }
 
