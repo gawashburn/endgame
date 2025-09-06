@@ -2,7 +2,7 @@
 name = "endgame"
 description = "A turn-based game engine."
 authors = ["Geoffrey Washburn <geoff@washburght.org>"]
-version = "0.1.0"
+version = "0.2.0"
 keywords = ["game", "engine", "gamedev"]
 license = "MIT"
 repository = "https://github.com/gawashburn/endgame"
@@ -14,12 +14,10 @@ edition = "2024"
 resolver = "2"
 members = [
     "crates/*",
-    # Examples have not yet been migrated.
-    "examples/bevy",
-    "examples/winit",
-    "examples/games/*",
     "examples/grid_demo"
 ]
 
 [dependencies]
-endgame_direction = { path = "crates/endgame_direction" }
+endgame_direction = { path = "crates/endgame_direction", version = "0.3" }
+endgame_grid = { path = "crates/endgame_grid", version = "0.2" }
+endgame_egui = { path = "crates/endgame_egui", version = "0.1" }
