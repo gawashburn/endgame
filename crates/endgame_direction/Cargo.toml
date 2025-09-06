@@ -2,7 +2,7 @@
 name = "endgame_direction"
 description = "A library for representing cardinal and ordinal directions."
 authors = ["Geoffrey Washburn <geoff@washburght.org>"]
-version = "0.2.0"
+version = "0.3.0"
 repository = "https://github.com/gawashburn/endgame"
 license = "MIT"
 edition = "2024"
