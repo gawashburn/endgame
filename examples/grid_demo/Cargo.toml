@@ -1,0 +1,19 @@
+[package]
+name = "grid_demo"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+endgame_direction = { path = "../../crates/endgame_direction", version = "0.3" }
+endgame_grid = { path = "../../crates/endgame_grid", version = "0.2" }
+endgame_egui = { path = "../../crates/endgame_egui", version = "0.2" }
+lazy_static = "1.5.0"
+mint = "0.5"
+glam = { version = "0.30", features = ["serde", "mint"] }
+egui = { version = "0.32.1", features = ["serde", "mint"] }
+env_logger = "0.11"
+eframe = "0.32.1"
+wasm-bindgen = "0.2.100"
+log = "0.4.27"
+web-sys = "0.3.77"
+wasm-bindgen-futures = "0.4.50"
