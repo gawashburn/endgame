@@ -12,4 +12,12 @@ proptest = "1.0.0"
 
 [dependencies]
 endgame_direction = { path = "../endgame_direction", version = "0.2" }
-glam = { version = "0.30", features = ["serde", "mint"] }
+glam = { version = "0.30", features = ["mint"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
+lazy_static = "1.5.0"
+ordered-float = "5.0"
+itertools = "0.14"
+
+[features]
+default = ["serde"]
+serde = ["dep:serde", "glam/serde"]

@@ -15,7 +15,10 @@ resolver = "2"
 members = [
     "crates/*",
     # Examples have not yet been migrated.
-    #    "examples/*"
+    "examples/bevy",
+    "examples/winit",
+    "examples/games/*",
+    "examples/grid_demo"
 ]
 
 [dependencies]

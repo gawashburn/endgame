@@ -3,10 +3,10 @@
 //! seem better separated to allow for different grid systems.
 
 use bitset_core::BitSet;
+use regex::RegexSet;
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
 use std::fmt::Display;
-
 //////////////////////////////////////////////////////////////////////////////
 
 /// An enumeration of compass directions.  The traditional "cardinal" directions,
@@ -14,7 +14,8 @@ use std::fmt::Display;
 ///
 /// We use a counter-clockwise ordering starting at East, so that it aligns
 /// well with radian angles.
-#[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[repr(u8)]
 pub enum Direction {
     East = 0,
@@ -30,6 +31,7 @@ pub enum Direction {
 impl Display for Direction {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Direction::*;
+        // TODO Consider localization support?
         let name = match self {
             East => "East",
             NorthEast => "NorthEast",
@@ -44,6 +46,22 @@ impl Display for Direction {
     }
 }
 
+lazy_static::lazy_static! {
+
+    /// A set of regular expressions for matching direction names.
+    /// The order of the regexes corresponds to that of the `Direction` enum.
+    static ref DIRECTION_REGEX_SET: RegexSet = RegexSet::new(&[
+        r"^e|east$",
+        r"^ne|north(\s*|-|_)east$",
+        r"^n|north$",
+        r"^nw|north(\s*|-|_)west$",
+        r"^w|west$",
+        r"^sw|south(\s*|-|_)west$",
+        r"^s|south$",
+        r"^se|south(\s*|-|_)east$",
+    ]).expect("Failed to compile Direction RegexSet.");
+}
+
 impl Direction {
     /// A reference to the set of all possible `Direction`s.
     pub const VALUES: &'static DirectionSet = &DirectionSet(0b11111111);
@@ -53,6 +71,39 @@ impl Direction {
 
     /// A reference to the set of ordinal `Direction`s.
     pub const ORDINAL: &'static DirectionSet = &DirectionSet(0b10101010);
+
+    /// Parse a string into a `Direction`.
+    /// Both long and full direction names are supported, along with
+    /// whitespace, hyphens, and underscores between the intercardinal
+    /// direction words.
+    // TODO Consider localization support?
+    pub fn parse(s: &str) -> Option<Direction> {
+        DIRECTION_REGEX_SET
+            .matches(s.to_lowercase().as_str())
+            .iter()
+            .next()
+            .and_then(|index| {
+                // Convert the index to a Direction.
+                // The index corresponds to the order of the Direction enum.
+                Direction::from_u8_checked(index as u8)
+            })
+    }
+
+    /// Obtain an abbreviated name for this `Direction`.
+    // TODO Consider localization support?
+    pub fn short_name(self) -> &'static str {
+        use Direction::*;
+        match self {
+            East => "E",
+            NorthEast => "NE",
+            North => "N",
+            NorthWest => "NW",
+            West => "W",
+            SouthWest => "SW",
+            South => "S",
+            SouthEast => "SE",
+        }
+    }
 
     /// Is this a cardinal `Direction`?
     pub fn is_cardinal(self) -> bool {
@@ -64,8 +115,9 @@ impl Direction {
         Direction::ORDINAL.0.bit_test(self as usize)
     }
 
-    /// Convert a `u8` value to a `Direction`.
-    fn from_u8(value: u8) -> Direction {
+    /// Convert a `u8` value to a `Direction`.  Will panic if the value is
+    /// not in the range 0-7.
+    pub fn from_u8(value: u8) -> Direction {
         use Direction::*;
         match value {
             0 => East,
@@ -78,6 +130,24 @@ impl Direction {
             7 => SouthEast,
             _ => panic!("Invalid direction value: {value}"),
         }
+    }
+
+    /// Convert a `u8` value to an `Option<Direction>`.
+    /// Returns `None` if the provided value is not in the range 0-7.
+    pub fn from_u8_checked(value: u8) -> Option<Direction> {
+        use Direction::*;
+        let dir = match value {
+            0 => East,
+            1 => NorthEast,
+            2 => North,
+            3 => NorthWest,
+            4 => West,
+            5 => SouthWest,
+            6 => South,
+            7 => SouthEast,
+            _ => return None,
+        };
+        Some(dir)
     }
 
     /// Produce the `Direction` clockwise from this `Direction`.
@@ -120,7 +190,8 @@ impl std::ops::Not for Direction {
 /// `Direction` type only models eight possible directions, so it is possible
 /// to efficiently represent a set of directions as bitset with just a single
 /// byte.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct DirectionSet(u8);
 
 impl Display for DirectionSet {
@@ -211,7 +282,7 @@ impl DirectionSet {
         DirectionSet(0)
     }
 
-    /// Inser the given `Direction` into the `DirectionSet`.
+    /// Insert the given `Direction` into the `DirectionSet`.
     pub fn insert(&mut self, dir: Direction) -> bool {
         let contains = self.contains(dir);
         self.0.bit_set(dir as usize);
