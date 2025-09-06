@@ -2,7 +2,7 @@
 name = "endgame_egui"
 description = "A library for integrating endgame with the egui GUI library."
 authors = ["Geoffrey Washburn <geoff@washburght.org>"]
-version = "0.1.0"
+version = "0.2.0"
 repository = "https://github.com/gawashburn/endgame"
 edition = "2024"
 license = "MIT"
