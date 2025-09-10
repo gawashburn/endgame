@@ -2,7 +2,8 @@ use crate::{common, ExampleUi, GridDemo, GridExample};
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::{Color32, FontId};
-use egui::Painter;
+use egui::scroll_area::ScrollBarVisibility;
+use egui::{Painter, ScrollArea};
 use endgame_direction::Direction;
 use endgame_egui::{CellBorderStyle, CellPrimitiveBorderStyle, CellStyle, Theme};
 use endgame_grid::shape::HashShape;
@@ -97,21 +98,37 @@ impl ExampleUi for Ui {
         }
 
         let mut removals = Vec::new();
-        for (num, instance) in self.shapes.iter_mut() {
-            ui.separator();
+        ScrollArea::vertical()
+            .auto_shrink(false)
+            .scroll_bar_visibility(ScrollBarVisibility::AlwaysVisible)
+            .show(ui, |ui| {
+                for (num, instance) in self.shapes.iter_mut() {
+                    ui.separator();
 
-            ui.radio_value(&mut instance.choice, ShapeChoice::Range, "Range");
-            ui.radio_value(&mut instance.choice, ShapeChoice::Ring, "Ring");
-            ui.add(egui::Slider::new(&mut instance.size, 0..=16).text("Size"));
-            ui.checkbox(&mut instance.subtractive, "Subtractive");
+                    egui::Grid::new(format!("shape_options_{num}"))
+                        .num_columns(2)
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                ui.radio_value(&mut instance.choice, ShapeChoice::Range, "Range");
+                                ui.radio_value(&mut instance.choice, ShapeChoice::Ring, "Ring");
+                            });
+                            ui.checkbox(&mut instance.subtractive, "Subtractive");
+                            ui.end_row();
 
-            ui.button("Remove")
-                .on_hover_text("Remove Shape")
-                .clicked()
-                .then(|| {
-                    removals.push(*num);
-                });
-        }
+                            ui.add(egui::Slider::new(&mut instance.size, 0..=16).text("Size"));
+
+                            ui.button("Remove")
+                                .on_hover_text("Remove Shape")
+                                .clicked()
+                                .then(|| {
+                                    removals.push(*num);
+                                });
+
+                            ui.end_row();
+                        });
+                }
+            });
 
         for num in removals {
             self.shapes.remove(&num);

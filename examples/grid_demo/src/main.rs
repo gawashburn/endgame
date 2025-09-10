@@ -17,7 +17,7 @@ mod shapes;
 
 use egui::emath::RectTransform;
 use egui::text::LayoutJob;
-use egui::{FontId, Painter, Pos2, Rect, Sense, Ui};
+use egui::{Align, FontId, Id, Layout, Painter, Pos2, Rect, Sense, Ui};
 use endgame_egui::{CellStyle, Theme};
 use endgame_grid::dynamic;
 use endgame_grid::SizedGrid;
@@ -116,13 +116,15 @@ struct GridDemo {
     mouse: Pos2,
     /// A queue of mouse clicks in screen coordinates.
     clicks: RefCell<Box<VecDeque<Pos2>>>,
+    /// About dialog state.
+    about_dialog_open: bool,
 }
 
 impl Default for GridDemo {
     fn default() -> Self {
         GridDemo {
             grid_kind: dynamic::Kind::Square,
-            grid_size: 48.0,
+            grid_size: 32.0,
             example: GridExample::Coordinates,
             example_uis: HashMap::from_iter(
                 [
@@ -146,37 +148,74 @@ impl Default for GridDemo {
             offset: None,
             mouse: Pos2::ZERO,
             clicks: RefCell::<Box<VecDeque<Pos2>>>::new(Box::new(VecDeque::new())),
+            about_dialog_open: false,
         }
     }
 }
 
 impl GridDemo {
     fn render_panel(&mut self, ui: &mut Ui) {
-        let mut job = LayoutJob::single_section(
-            "This program exercises the functionality of the endgame_grid \
-            library for both pedagogical and debugging purposes.\n\n\
-            Click and drag with the mouse to pan the view.\n\n\
-            The scroll wheel can also be used to adjust the grid size.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
+        if self.about_dialog_open {
+            let modal = egui::Modal::new(Id::new("about_modal")).show(ui.ctx(), |ui| {
+                ui.heading("grid_demo");
+                let mut job = LayoutJob::single_section(
+                    "This program exercises the functionality of the endgame_grid \
+            library for both pedagogical and debugging purposes.\n"
+                        .to_owned(),
+                    egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+                );
+                job.wrap = egui::text::TextWrapping::default();
+                ui.label(job);
+                ui.heading("Links");
+                use egui::special_emojis::GITHUB;
+                ui.hyperlink_to(
+                    format!("{GITHUB} github.com/gawashburn/endgame"),
+                    "https://github.com/gawashburn/endgame",
+                );
+                ui.hyperlink_to(
+                    format!(
+                        "{GITHUB} github.com/gawashburn/endgame/tree/master/crates/endgame_grid"
+                    ),
+                    "https://github.com/gawashburn/endgame/tree/master/crates/endgame_grid",
+                );
+                ui.hyperlink_to(
+                    format!(
+                        "{GITHUB} github.com/gawashburn/endgame/tree/master/examples/grid_demo"
+                    ),
+                    "https://github.com/gawashburn/endgame/tree/master/examples/grid_demo",
+                );
 
-        ui.label(job);
+                ui.with_layout(Layout::top_down(Align::RIGHT), |ui| {
+                    if ui.button("Close").clicked() {
+                        ui.close()
+                    }
+                });
+            });
 
-        ui.separator();
-        egui::Grid::new("grid_demo")
+            if modal.should_close() {
+                self.about_dialog_open = false
+            }
+        }
+
+        egui::Grid::new("grid_demo_controls")
             .num_columns(2)
             .striped(true)
             .show(ui, |ui| {
-                ui.vertical_centered(|ui| {
+                ui.with_layout(Layout::top_down(Align::Center), |ui| {
+                    if ui.button("About...").clicked() {
+                        self.about_dialog_open = true
+                    }
+                });
+
+                ui.with_layout(Layout::top_down(Align::Center), |ui| {
                     if ui.button("Center view on origin").clicked() {
                         self.offset = None;
                     }
                 });
+
                 ui.end_row();
                 ui.label("Grid kind");
-                ui.end_row();
+                //  ui.end_row();
                 ui.horizontal(|ui| {
                     ui.radio_value(&mut self.grid_kind, dynamic::Kind::Square, "Square");
                     ui.radio_value(&mut self.grid_kind, dynamic::Kind::Hex, "Hex");
@@ -184,9 +223,8 @@ impl GridDemo {
                 });
                 ui.end_row();
                 ui.label("Grid inradius length");
-                ui.end_row();
+                //ui.end_row();
                 ui.add(egui::Slider::new(&mut self.grid_size, 16.0..=256.0));
-                ui.end_row();
                 ui.end_row();
                 ui.label("Examples:");
                 ui.end_row();
@@ -196,14 +234,31 @@ impl GridDemo {
                 // Sort so the example order is consistent across application runs.
                 uis.sort_by(|(ex1, _), (ex2, _)| (**ex1 as u8).cmp(&(**ex2 as u8)));
 
-                for (ex, cell) in uis {
-                    let example_ui = cell.borrow();
-                    if example_ui.supports_grid_kind(self.grid_kind) {
-                        ui.radio_value(&mut self.example, *ex, example_ui.label());
-                        ui.end_row();
+                // Only show those examples that support the current grid kind.
+                let visible_examples = uis
+                    .iter()
+                    .filter(|(_, cell)| cell.borrow().supports_grid_kind(self.grid_kind))
+                    .collect::<Vec<_>>();
+
+                // Chunk the examples into two columns to save some vertical space.
+                for chunk in visible_examples.chunks(2) {
+                    for (ex, cell) in chunk {
+                        let example_ui = cell.borrow();
+                        ui.radio_value(&mut self.example, **ex, example_ui.label());
                     }
+                    ui.end_row();
                 }
             });
+
+        ui.separator();
+        let mut job = LayoutJob::single_section(
+            "Click and drag with the mouse to pan the view.\n\n\
+            The scroll wheel can also adjust the grid size."
+                .to_owned(),
+            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+        );
+        job.wrap = egui::text::TextWrapping::default();
+        ui.label(job);
 
         if let Some(ref_cell) = self.example_uis.get(&self.example) {
             ui.separator();
@@ -214,14 +269,15 @@ impl GridDemo {
     fn render_view(&mut self, ui: &mut Ui) {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
 
-        // Check if there was a scroll-wheel delta.
+        // Check if there was a scroll-wheel delta if the mouse inside the
+        // response rectangle.
         let delta = ui.input(|i| {
             i.events.iter().find_map(|e| match e {
                 egui::Event::MouseWheel {
                     unit: _,
                     delta,
                     modifiers: _,
-                } => Some(*delta),
+                } if response.contains_pointer() => Some(*delta),
                 _ => None,
             })
         });
