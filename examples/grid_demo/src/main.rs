@@ -18,7 +18,7 @@ mod shapes;
 use egui::emath::RectTransform;
 use egui::text::LayoutJob;
 use egui::{Align, FontId, Id, Layout, Painter, Pos2, Rect, Sense, Ui};
-use endgame_egui::{CellStyle, Theme};
+use endgame_egui::{CellStyle, GridContext, Theme};
 use endgame_grid::dynamic;
 use endgame_grid::SizedGrid;
 use std::cell::RefCell;
@@ -90,12 +90,12 @@ trait ExampleUi {
     /// By default, no additional overlay is rendered.
     fn render_overlay(
         &mut self,
-        _demo: &GridDemo,
+        // TODO Change to move once other arguments are removed.
+        _ctx: &GridContext<dynamic::SizedGrid>,
         _dszg: &dynamic::SizedGrid,
         _transform: &RectTransform,
         _painter: &Painter,
-    ) {
-    }
+    ) {}
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -142,8 +142,8 @@ impl Default for GridDemo {
                     rotation::Ui::boxed(),
                     shapes::Ui::boxed(),
                 ]
-                .into_iter()
-                .map(|cell| ({ cell.borrow().example() }, cell)),
+                    .into_iter()
+                    .map(|cell| ({ cell.borrow().example() }, cell)),
             ),
             offset: None,
             mouse: Pos2::ZERO,
@@ -267,6 +267,40 @@ impl GridDemo {
     }
 
     fn render_view(&mut self, ui: &mut Ui) {
+        if let Some(ref_cell) = self.example_uis.get(&self.example) {
+            let mut example_ui = ref_cell.borrow_mut();
+            let theme_fun =
+                |coord: &dynamic::Coord, dark_mode: bool| Theme::Map.cell_style(coord, dark_mode);
+            //|coord: &dynamic::Coord, dark_mode: bool| ref_cell.borrow().cell_theme(coord, dark_mode);
+            //|coord: &dynamic::Coord, dark_mode: bool| example_ui.cell_theme(coord, dark_mode);
+            let mut gv =
+                endgame_egui::GridView::new(
+                    &mut self.grid_size,
+                    &mut self.offset,
+                    |inradius| dynamic::SizedGrid::new(self.grid_kind, inradius),
+                    None,
+                    None,
+                    12.0,
+                    128.0,
+                    example_ui.render_grid(),
+                    true, // sw
+                    true, // pwd
+                    true, // clear
+                    *common::LIGHT_BACKGROUND,
+                    *common::DARK_BACKGROUND,
+                    theme_fun,
+                    |coord| Some(format!("{}", coord)),
+                );
+            gv.render(ui, |gc| {
+                // FIX!
+                example_ui.render_overlay(&gc, &gc.szg, &gc.to_screen_transform, &gc.painter);
+                // self.render_view2(gc.ui);
+            });
+        }
+    }
+
+
+    fn render_view2(&mut self, ui: &mut Ui) {
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
 
         // Check if there was a scroll-wheel delta if the mouse inside the
@@ -374,7 +408,8 @@ impl GridDemo {
                 );
             }
             // Render example specific visuals.
-            example_ui.render_overlay(self, &dszg, &to_screen_transform, &painter);
+            // TODO
+            // example_ui.render_overlay(self, &dszg, &to_screen_transform, &painter);
         }
     }
 }

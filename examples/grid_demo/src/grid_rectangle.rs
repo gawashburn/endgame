@@ -3,7 +3,7 @@ use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::{Color32, FontId};
 use egui::Painter;
-use endgame_egui::{CellStyle, Theme};
+use endgame_egui::{CellStyle, GridContext, Theme};
 use endgame_grid::dynamic;
 
 #[derive(Default)]
@@ -46,24 +46,27 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
         let min = egui::pos2(
-            painter.clip_rect().min.x + self.x_margin,
-            painter.clip_rect().min.y + self.y_margin,
+            _painter.clip_rect().min.x + self.x_margin,
+            _painter.clip_rect().min.y + self.y_margin,
         );
         let max = egui::pos2(
-            painter.clip_rect().max.x - self.x_margin,
-            painter.clip_rect().max.y - self.y_margin,
+            _painter.clip_rect().max.x - self.x_margin,
+            _painter.clip_rect().max.y - self.y_margin,
         );
 
         fn theme_fun(coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
             Theme::Map.cell_style(coord, dark_mode)
         }
 
+        // FIX!!
+        /*
         // Render the base grid, if this particular example wants it.
         endgame_egui::render_grid_rect(
             dszg,
@@ -77,8 +80,10 @@ impl ExampleUi for Ui {
             &transform,
             &painter,
         );
+        
+         */
 
-        painter.rect_filled(
+        _painter.rect_filled(
             egui::Rect { min, max },
             0.0,
             Color32::from_rgba_unmultiplied(255, 255, 0, 32),

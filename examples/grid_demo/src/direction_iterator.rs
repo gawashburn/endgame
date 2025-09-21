@@ -4,7 +4,7 @@ use eframe::epaint::FontId;
 use egui::emath::RectTransform;
 use egui::Painter;
 use endgame_direction::Direction;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, Theme};
+use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType, SizedGrid};
 use std::ops::Deref;
 
@@ -89,11 +89,13 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
@@ -101,27 +103,29 @@ impl ExampleUi for Ui {
             &mut self.source,
         );
 
+         */
+
         let Some(coord) = self.source else {
             return;
         };
 
         endgame_egui::render_coord_cell(
-            dszg,
+            _dszg,
             &coord,
             &common::SOURCE_CELL_SPEC,
             None::<&str>,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
 
         let dir = Direction::from_u8(self.direction);
         if !coord.allowed_direction(self.dir_type, dir) {
             endgame_egui::render_disallowed(
-                endgame_egui::coord_to_egui_pos2(&coord, dszg),
-                dszg.inradius() * 0.66,
-                8.0 * (demo.grid_size / 64.0),
-                transform,
-                painter,
+                endgame_egui::coord_to_egui_pos2(&coord, _dszg),
+                _dszg.inradius() * 0.66,
+                8.0 * (_ctx.szg.inradius() / 64.0),
+                _transform,
+                _painter,
             );
             return;
         }
@@ -130,13 +134,13 @@ impl ExampleUi for Ui {
         for coord in coord.direction_iterator(self.dir_type, dir, ..self.steps + 1) {
             if let Some(prev) = prev_coord {
                 render_hollow_arrow_coords(
-                    dszg,
+                    _dszg,
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    transform,
-                    painter,
+                    _transform,
+                    _painter,
                 );
             }
             prev_coord = Some(coord.clone());
@@ -144,12 +148,12 @@ impl ExampleUi for Ui {
 
         if let Some(last_coord) = prev_coord {
             endgame_egui::render_coord_cell(
-                dszg,
+                _dszg,
                 &last_coord,
                 &common::TARGET_CELL_SPEC,
                 None::<&str>,
-                transform,
-                painter,
+                _transform,
+                _painter,
             )
         }
     }

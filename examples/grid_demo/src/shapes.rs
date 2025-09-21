@@ -1,13 +1,12 @@
 use crate::{common, ExampleUi, GridDemo, GridExample};
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
-use eframe::epaint::{Color32, FontId};
+use eframe::epaint::FontId;
 use egui::scroll_area::ScrollBarVisibility;
-use egui::{Painter, ScrollArea};
-use endgame_direction::Direction;
-use endgame_egui::{CellBorderStyle, CellPrimitiveBorderStyle, CellStyle, Theme};
+use egui::{Color32, Painter, ScrollArea};
+use endgame_egui::{render_shape, CellBorderStyle, CellStyle, GridContext, Theme};
 use endgame_grid::shape::HashShape;
-use endgame_grid::{dynamic, Coord, DirectionType, Shape};
+use endgame_grid::{dynamic, Shape};
 use std::collections::BTreeMap;
 
 #[derive(PartialEq, Eq, Default)]
@@ -137,19 +136,25 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
-        let base_style = common::SOURCE_CELL_SPEC.clone();
+        let base_style = CellStyle {
+            border: CellBorderStyle::uniform(4.0,
+                                             Color32::from_rgba_unmultiplied(252, 182, 5, 192)),
+            ..common::SOURCE_CELL_SPEC.clone()
+        };
 
         let mut opt_shape = None::<HashShape<dynamic::Coord>>;
 
+        let grid_kind = dynamic::Kind::Square; // demo.grid_kind;
         for instance in self.shapes.values() {
             let shape = match instance.choice {
-                ShapeChoice::Ring => dynamic::Coord::ring(demo.grid_kind, instance.size),
-                ShapeChoice::Range => dynamic::Coord::range(demo.grid_kind, instance.size),
+                ShapeChoice::Ring => dynamic::Coord::ring(grid_kind, instance.size),
+                ShapeChoice::Range => dynamic::Coord::range(grid_kind, instance.size),
             };
 
             match opt_shape {
@@ -167,38 +172,6 @@ impl ExampleUi for Ui {
         }
 
         let Some(shape) = opt_shape else { return };
-
-        for coord in shape.iter() {
-            let allowed_directions = coord.allowed_directions(DirectionType::Face);
-            let no_adjacent: Vec<Direction> = allowed_directions
-                .into_iter()
-                .filter(|d| {
-                    let dir_coord = coord
-                        .move_in_direction(DirectionType::Face, *d)
-                        .expect("Direction should be valid");
-                    !shape.contains(&dir_coord)
-                })
-                .collect();
-
-            let style = CellStyle {
-                border: CellBorderStyle::PerEdge(
-                    no_adjacent
-                        .into_iter()
-                        .map(|d| {
-                            (
-                                d,
-                                CellPrimitiveBorderStyle::Uniform(
-                                    4.0,
-                                    Color32::from_rgba_unmultiplied(252, 182, 5, 192),
-                                ),
-                            )
-                        })
-                        .collect(),
-                ),
-                ..base_style.clone()
-            };
-
-            endgame_egui::render_coord_cell(dszg, coord, &style, None::<&str>, transform, painter);
-        }
+        render_shape(_dszg, &shape, &base_style, _transform, _painter);
     }
 }

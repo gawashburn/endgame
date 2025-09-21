@@ -3,7 +3,7 @@ use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::emath::RectTransform;
 use egui::{Color32, Painter};
-use endgame_egui::{render_arrow, render_hollow_arrow_coords, CellStyle, SolidArrowStyle, Theme};
+use endgame_egui::{render_arrow, render_hollow_arrow_coords, CellStyle, GridContext, SolidArrowStyle, Theme};
 use endgame_grid::{dynamic, Coord};
 use std::ops::Deref;
 
@@ -63,11 +63,13 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::binary_coordinates_select(
             dszg,
             demo.grid_kind,
@@ -75,18 +77,18 @@ impl ExampleUi for Ui {
             &mut self.source,
             &mut self.target,
         );
-
+*/
         let Some(source) = self.source else {
             return;
         };
 
         endgame_egui::render_coord_cell(
-            dszg,
+            _dszg,
             &source,
             &common::SOURCE_CELL_SPEC,
             None::<&str>,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
 
         let Some(target) = self.target else {
@@ -94,18 +96,18 @@ impl ExampleUi for Ui {
         };
 
         endgame_egui::render_coord_cell(
-            dszg,
+            _dszg,
             &target,
             &common::TARGET_CELL_SPEC,
             None::<&str>,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
 
         let source_screen =
-            transform.transform_pos(endgame_egui::coord_to_egui_pos2(&source, dszg));
+            _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&source, _dszg));
         let target_screen =
-            transform.transform_pos(endgame_egui::coord_to_egui_pos2(&target, dszg));
+            _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&target, _dszg));
 
         if source_screen != target_screen {
             let style = SolidArrowStyle {
@@ -115,19 +117,19 @@ impl ExampleUi for Ui {
                 from_head: false,
                 label: None,
             };
-            render_arrow(source_screen, target_screen, &style, None, painter);
+            render_arrow(source_screen, target_screen, &style, None, _painter);
         }
 
         // If the source is just the target, we just render a single arrow.
         if source == target {
             render_hollow_arrow_coords(
-                dszg,
+                _dszg,
                 &source,
                 &target,
                 common::HOLLOW_ARROW_STYLE.deref(),
                 None,
-                transform,
-                painter,
+                _transform,
+                _painter,
             );
             return;
         }
@@ -136,13 +138,13 @@ impl ExampleUi for Ui {
         for coord in source.path_iterator(&target) {
             if let Some(prev) = prev_coord {
                 render_hollow_arrow_coords(
-                    dszg,
+                    _dszg,
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    transform,
-                    painter,
+                    _transform,
+                    _painter,
                 );
             }
             prev_coord = Some(coord);

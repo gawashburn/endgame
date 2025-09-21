@@ -4,28 +4,31 @@ use egui::ahash::HashSet;
 use egui::emath::{RectTransform, TSTransform};
 use egui::epaint::ColorMode::Solid;
 use egui::epaint::{PathShape, PathStroke};
-use egui::{pos2, Color32, Painter, Pos2, Rect};
-use endgame_direction::Direction;
+use egui::{pos2, Color32, Painter, Pos2, Rect, Sense};
+use endgame_direction::{Direction, DirectionSet};
 use endgame_grid::Color::{Four, One, Three, Two};
-use endgame_grid::{dynamic, Coord, DirectionType, Shape, SizedGrid};
+use endgame_grid::{Coord, DirectionType, Shape, ShapeContainer, SizedGrid};
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::f32::consts::PI;
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::ops::Deref;
 //////////////////////////////////////////////////////////////////////////////
 
 // Conversion helpers as we cannot define From or Into for these types.
 
 /// Given a screen coordinate as  `egui::Pos2`, convert it to a grid coord
 /// using the provided `dynamic::SizedGrid`.
-pub fn egui_pos2_to_coord(pos: Pos2, dszg: &dynamic::SizedGrid) -> dynamic::Coord {
+pub fn egui_pos2_to_coord<SZ: SizedGrid>(pos: Pos2, szg: &SZ) -> SZ::Coord {
     let mint: mint::Point2<f32> = pos.into();
-    dszg.screen_to_grid(mint.into())
+    szg.screen_to_grid(mint.into())
 }
 
 /// Given a grid coordinate as `dynamic::Coord`, convert it to a screen
 /// position as `egui::Pos2` using the provided `dynamic::SizedGrid`.
-pub fn coord_to_egui_pos2(coord: &dynamic::Coord, dszg: &dynamic::SizedGrid) -> Pos2 {
-    let mint: mint::Point2<f32> = dszg.grid_to_screen(coord).into();
+pub fn coord_to_egui_pos2<SZ: SizedGrid>(coord: &SZ::Coord, szg: &SZ) -> Pos2 {
+    let mint: mint::Point2<f32> = szg.grid_to_screen(coord).into();
     mint.into()
 }
 
@@ -180,7 +183,8 @@ pub struct CellStyle {
 /// A `Theme` provides some predefined styling for grid cells.
 #[derive(Debug, Clone, Copy)]
 pub enum Theme {
-    /// A theme reminiscent of a map where no adjacent cells have the same color.
+    /// A theme reminiscent of a map where no adjacent cells have the same
+    /// color.
     Map,
     /// A theme reminiscent of classic graph paper with a light background and
     /// blue grid lines.
@@ -333,7 +337,7 @@ fn solid_arrow_head_shape(tip: Pos2, angle: f32, color: Color32) -> egui::Shape 
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into()
+        .into()
 }
 
 pub fn render_arrow(
@@ -461,7 +465,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     let arrow_shaft: egui::Shape = PathShape {
         points: vec![
@@ -479,7 +483,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     let arrow_border: egui::Shape = PathShape {
         points: vec![
@@ -500,7 +504,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     painter.add(arrow_shaft);
     painter.add(arrow_head);
@@ -556,7 +560,7 @@ pub fn render_hollow_self_arrow(
                 kind: egui::StrokeKind::Middle,
             },
         }
-        .into();
+            .into();
         painter.add(quad);
     }
     let lend = larc_points.last().unwrap();
@@ -584,7 +588,7 @@ pub fn render_hollow_self_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     let mut border = larc_points;
     border.push(glam_vec2_to_egui_pos2(lhead));
@@ -602,7 +606,7 @@ pub fn render_hollow_self_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     painter.add(arrow_head);
     painter.add(arrow_border);
@@ -690,7 +694,7 @@ pub fn render_coord_cell<SZ: SizedGrid, T: AsRef<str>>(
             kind: egui::StrokeKind::Middle,
         },
     }
-    .into();
+        .into();
 
     render_cell.transform(TSTransform {
         scaling: 1.0,
@@ -748,6 +752,7 @@ pub fn render_shape<SZ: SizedGrid, S: Shape<SZ::Coord>>(
     dszg: &SZ,
     shape: &S,
     style: &CellStyle,
+    inner_border_style: Option<CellPrimitiveBorderStyle>,
     transform: &RectTransform,
     painter: &Painter,
 ) {
@@ -759,8 +764,10 @@ pub fn render_shape<SZ: SizedGrid, S: Shape<SZ::Coord>>(
     for coord in shape.iter() {
         // TODO There is perhaps a more efficient means of finding the
         //   external edges of a shape.
-        let allowed_directions = coord.allowed_directions(DirectionType::Face);
-        let no_adjacent: Vec<Direction> = allowed_directions
+        let allowed_directions: DirectionSet = coord.allowed_directions(DirectionType::Face);
+        let render_coord = coord.clone();
+        let no_adjacent: DirectionSet = allowed_directions
+            //from_shape_value(square::Coord::range(3), None);
             .into_iter()
             .filter(|d| {
                 let dir_coord = coord
@@ -770,17 +777,66 @@ pub fn render_shape<SZ: SizedGrid, S: Shape<SZ::Coord>>(
             })
             .collect();
 
+        // TODO implement add, sub, etc.
+        //let interior = allowed_directions - no_adjacent;
+        let interior = allowed_directions.difference(no_adjacent);
+        let mut edge_style = Vec::new();
+        edge_style.extend(
+            no_adjacent
+                .into_iter()
+                .map(|d| (d, prim.clone())),
+        );
+        edge_style.extend(
+            interior
+                .into_iter()
+                .map(|d| {
+                    (
+                        d,
+                        inner_border_style
+                            .clone()
+                            .unwrap_or(CellPrimitiveBorderStyle::None),
+                    )
+                }),
+        );
+
         let style = CellStyle {
-            border: CellBorderStyle::PerEdge(
-                no_adjacent.into_iter().map(|d| (d, prim.clone())).collect(),
-            ),
+            border: CellBorderStyle::PerEdge(edge_style.into_iter().collect()),
             ..style.clone()
         };
 
-        render_coord_cell(dszg, coord, &style, None::<&str>, transform, painter);
+        render_coord_cell(dszg, &render_coord, &style, None::<&str>, transform, painter);
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////
+
+pub fn render_shape_container<SZ: SizedGrid, V, SC: ShapeContainer<SZ::Coord, V>>(
+    dszg: &SZ,
+    shape_container: &SC,
+    style: &CellStyle,
+    inner_border_style: Option<CellPrimitiveBorderStyle>,
+    transform: &RectTransform,
+    painter: &Painter,
+    render_val: impl Fn(&SZ::Coord, &V, &RectTransform, &Painter) -> (),
+)
+where
+    V: Debug + Clone + PartialEq + Eq + Hash,
+{
+    let shape = shape_container.as_shape();
+    render_shape(
+        dszg,
+        &shape,
+        style,
+        inner_border_style,
+        transform,
+        painter,
+    );
+    for (coord, v) in shape_container.iter() {
+        render_val(coord, v, transform, painter);
+    }
+}
+
+// TODO Replace with Rust width separators
 //////////////////////////////////////////////////////////////////////////////
 
 pub fn render_grid_rect<SZ: SizedGrid>(
@@ -844,5 +900,188 @@ pub fn render_grid_rect<SZ: SizedGrid>(
             transform,
             &painter,
         );
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+pub struct GridView<'l, SZ: SizedGrid> {
+    pub show_base_grid: bool,
+    // TODO Also allow configuring with modifiers, etc.
+    pub scroll_wheel_zoom: bool,
+    pub pan_with_drag: bool,
+    pub clear_background: bool,
+    pub light_clear_color: Color32,
+    pub dark_clear_color: Color32,
+    // TODO Generalize
+    pub style_for_coord: Box<dyn Fn(&SZ::Coord, bool) -> CellStyle + 'l>,
+    pub label_for_coord: Box<dyn Fn(&SZ::Coord) -> Option<String> + 'l>,
+    // Function to construct a `SizedGrid` with the given inradius.
+    szg_fn: Box<dyn Fn(f32) -> SZ + 'l>,
+    // Optional limits on panning the view.
+    min_coord: Option<SZ::Coord>,
+    max_coord: Option<SZ::Coord>,
+    min_inradius: f32,
+    max_inradius: f32,
+    inradius: &'l mut f32,
+    panning_offset: &'l mut Option<Pos2>,
+    // mouse: Pos2,
+}
+
+pub struct GridContext<'l, SZ: SizedGrid> {
+    pub ui: &'l mut egui::Ui,
+    pub response: egui::Response,
+    pub szg: SZ,
+    pub to_screen_transform: RectTransform,
+    pub dark_mode: bool,
+    pub painter: Painter,
+}
+
+impl<'l, SZ: SizedGrid> GridView<'l, SZ> {
+    // TODO Variant with fixed inradius and panning?
+    pub fn new(
+        inradius: &'l mut f32,
+        panning_offset: &'l mut Option<Pos2>,
+        szg_fn: impl Fn(f32) -> SZ + 'l,
+        min_coord: Option<SZ::Coord>,
+        max_coord: Option<SZ::Coord>,
+        min_cell_size: f32,
+        max_cell_size: f32,
+        show_base_grid: bool,
+        scroll_wheel_zoom: bool,
+        pan_with_drag: bool,
+        clear_background: bool,
+        light_clear_color: Color32,
+        dark_clear_color: Color32,
+        style_for_coord: impl Fn(&SZ::Coord, bool) -> CellStyle + 'l,
+        label_for_coord: impl Fn(&SZ::Coord) -> Option<String> + 'l,
+    ) -> Self {
+        Self {
+            show_base_grid,
+            scroll_wheel_zoom,
+            pan_with_drag,
+            clear_background,
+            light_clear_color,
+            dark_clear_color,
+            style_for_coord: Box::new(style_for_coord),
+            label_for_coord: Box::new(label_for_coord),
+            szg_fn: Box::new(szg_fn),
+            min_coord,
+            max_coord,
+            min_inradius: min_cell_size,
+            max_inradius: max_cell_size,
+            inradius: inradius,
+            panning_offset: panning_offset,
+        }
+    }
+
+    pub fn render<'a>(&mut self, ui: &mut egui::Ui, mut child: impl FnMut(GridContext<SZ>) -> () + 'a) {
+        // TO Will response.rect match ui.available_size(), if so simplify using that.
+
+        let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
+
+        // Check if there was a scroll-wheel delta if the mouse inside the
+        // response rectangle.
+        if self.scroll_wheel_zoom {
+            let delta = ui.input(|i| {
+                i.events.iter().find_map(|e| match e {
+                    egui::Event::MouseWheel {
+                        unit: _,
+                        delta,
+                        modifiers: _,
+                    } if response.contains_pointer() => Some(*delta),
+                    _ => None,
+                })
+            });
+
+            // TODO Also need to clamp so the grid doesn't get too small for min and max
+            // Apply the scroll-wheel delta to the grid size.
+            if let Some(delta) = delta {
+                *self.inradius = *self.inradius + delta.y;
+            }
+        }
+
+        // Construct a dynamic sized grid based upon the current selected
+        // grid kind and size.
+        let szg = (self.szg_fn)(*self.inradius);
+
+        // TODO Move init out of GridView
+        if self.panning_offset.is_none() {
+            // Center the grid initially.
+            let center = response.rect.center() * -1.0;
+            //  let screen_center =
+            // szg.grid_to_screen(&dynamic::Coord::origin(self.grid_kind));
+            *self.panning_offset = Some(center) //Some((center /*- Pos2::new(screen_center.x, screen_center.y) */).to_pos2());
+        }
+
+        // Check if the mouse button was dragged, and if so adjust the
+        // panning offset.
+        if self.pan_with_drag {
+            let prd = ui.interact(response.rect, response.id, Sense::drag());
+            if prd.dragged() {
+                *self.panning_offset = Some(self.panning_offset.unwrap() + prd.drag_delta());
+                // TODO Clamp based on min and max coordinates.
+            }
+        }
+
+        let dark_mode = ui.visuals().dark_mode;
+
+        // Clear the background if requested.
+        if self.clear_background {
+            painter.rect_filled(
+                painter.clip_rect(),
+                0.0,
+                if dark_mode {
+                    self.dark_clear_color
+                } else {
+                    self.light_clear_color
+                },
+            );
+        }
+
+        // Construct a transform that maps from the viewport specified by the
+        // panning offset and the size of the painting rectangle to the screen
+        // coordinates.  Note that we do not want to use the minimum,
+        // coordinate of the rect as the target, as its upper left corner is
+        // always zero for the purposes of painting.
+        let to_screen_transform = RectTransform::from_to(
+            Rect::from_min_size(self.panning_offset.unwrap(), response.rect.size()),
+            response.rect,
+            //Rect::from_min_size(Pos2::ZERO, response.rect.size()),
+        );
+
+        //  println!("Transform: {:?}", to_screen_transform);
+        //  println!("response.rect: {:?}", response.rect);
+
+        // Render the base grid if requested.
+        if self.show_base_grid {
+            render_grid_rect(
+                &szg,
+                self.style_for_coord.deref(),
+                self.label_for_coord.deref(),
+                dark_mode,
+                // TODO clipping rect doesn't match the view rect.
+                false, /* clip to rect */
+                //true, /* clip to rect */
+                egui_pos2_to_glam_vec2(Pos2::ZERO),
+                egui_pos2_to_glam_vec2(response.rect.size().to_pos2()),
+                //egui_pos2_to_glam_vec2(painter.clip_rect().min),
+                //egui_pos2_to_glam_vec2(painter.clip_rect().max),
+                // egui_pos2_to_glam_vec2(response.rect.min),
+                // egui_pos2_to_glam_vec2(response.rect.max),
+                self.panning_offset.unwrap(),
+                &to_screen_transform,
+                &painter,
+            );
+        }
+
+        child(GridContext {
+            ui,
+            response,
+            szg,
+            to_screen_transform, //.clone(),
+            dark_mode,
+            painter, //.clone(),
+        });
     }
 }

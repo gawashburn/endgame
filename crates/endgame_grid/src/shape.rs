@@ -27,7 +27,7 @@ impl<C: Coord, const N: usize> From<[C; N]> for HashShape<C> {
 }
 
 impl<C: Coord> FromIterator<C> for HashShape<C> {
-    fn from_iter<I: IntoIterator<Item = C>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item=C>>(iter: I) -> Self {
         Self {
             set: iter.into_iter().collect(),
         }
@@ -93,6 +93,12 @@ impl<'a, 'b, C: Coord> std::ops::Sub<&'b HashShape<C>> for &'a HashShape<C> {
 }
 
 impl<C: Coord> crate::Shape<C> for HashShape<C> {
+    type Iterator<'a>
+    = HashShapeIterator<'a, C>
+    where
+        Self: 'a,
+        C: 'a;
+
     fn new() -> Self {
         Self {
             set: HashSet::new(),
@@ -128,7 +134,7 @@ impl<C: Coord> crate::Shape<C> for HashShape<C> {
         }
     }
 
-    fn iter<'a>(&'a self) -> impl crate::ShapeIterator<'a, C>
+    fn iter<'a>(&'a self) -> Self::Iterator<'a>
     where
         C: 'a,
     {
@@ -140,8 +146,8 @@ impl<C: Coord> crate::Shape<C> for HashShape<C> {
 
 impl<MC: ModuleCoord> crate::ModuleShape<MC> for HashShape<MC>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     fn translate(&self, offset: &MC) -> Self {
         let new_set = self
@@ -155,8 +161,16 @@ where
 
 //////////////////////////////////////////////////////////////////////////////
 
-struct HashShapeIterator<'a, C: Coord + 'a> {
+pub struct HashShapeIterator<'a, C: Coord + 'a> {
     inner: std::collections::hash_set::Iter<'a, C>,
+}
+
+impl<'a, C: Coord + 'a> HashShapeIterator<'a, C> {
+    pub fn empty() -> Self {
+        HashShapeIterator {
+            inner: std::collections::hash_set::Iter::<'a, C>::default(),
+        }
+    }
 }
 
 impl<'a, C: Coord + 'a> Iterator for HashShapeIterator<'a, C> {
@@ -183,7 +197,19 @@ impl<C: Coord, V> HashShapeContainer<C, V>
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
 {
-    pub fn from_iter_value<I: IntoIterator<Item = C>>(iter: I, v: V) -> Self {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    pub fn from_shape_value<S: crate::Shape<C>>(shape: S, v: V) -> Self {
+        Self {
+            map: shape.iter().cloned().zip(std::iter::repeat(v)).collect(),
+        }
+    }
+
+    pub fn from_iter_value<I: IntoIterator<Item=C>>(iter: I, v: V) -> Self {
         Self {
             map: iter.into_iter().zip(std::iter::repeat(v)).collect(),
         }
@@ -194,7 +220,7 @@ impl<C: Coord, V> FromIterator<(C, V)> for HashShapeContainer<C, V>
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
 {
-    fn from_iter<I: IntoIterator<Item = (C, V)>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item=(C, V)>>(iter: I) -> Self {
         Self {
             map: iter.into_iter().collect(),
         }
@@ -237,10 +263,17 @@ where
 }
 
 impl<C: Coord, V: Debug + Clone + PartialEq + Eq + Hash> crate::ShapeContainer<C, V>
-    for HashShapeContainer<C, V>
+for HashShapeContainer<C, V>
 where
     V: Debug + Clone,
 {
+    type Iterator<'a>
+    = HashShapeContainerIterator<'a, C, V>
+    where
+        Self: 'a,
+        C: 'a,
+        V: 'a;
+
     fn contains(&self, coord: &C) -> bool {
         self.map.contains_key(coord)
     }
@@ -261,7 +294,13 @@ where
         self.map.is_empty()
     }
 
-    fn iter<'a>(&'a self) -> impl crate::ShapeContainerIterator<'a, C, V>
+    fn as_shape(&self) -> impl crate::Shape<C> {
+        HashShape {
+            set: self.map.keys().cloned().collect(),
+        }
+    }
+
+    fn iter<'a>(&'a self) -> Self::Iterator<'a>
     where
         C: 'a,
         V: 'a,
@@ -274,15 +313,27 @@ where
 
 //////////////////////////////////////////////////////////////////////////////
 
-struct HashShapeContainerIterator<'a, C: Coord + 'a, V: Debug + Clone + PartialEq + Eq + Hash>
+pub struct HashShapeContainerIterator<'a, C: Coord + 'a, V: Debug + Clone + PartialEq + Eq + Hash>
 where
     V: Debug + Clone,
 {
     inner: std::collections::hash_map::Iter<'a, C, V>,
 }
 
+impl<'a, C: Coord + 'a, V: Debug + Clone + PartialEq + Eq + Hash>
+HashShapeContainerIterator<'a, C, V>
+where
+    V: Debug + Clone,
+{
+    pub fn empty() -> Self {
+        HashShapeContainerIterator {
+            inner: std::collections::hash_map::Iter::<'a, C, V>::default(),
+        }
+    }
+}
+
 impl<'a, C: Coord + 'a, V: Debug + Clone + PartialEq + Eq + Hash> Iterator
-    for HashShapeContainerIterator<'a, C, V>
+for HashShapeContainerIterator<'a, C, V>
 where
     V: Debug + Clone,
 {
@@ -294,19 +345,18 @@ where
 }
 
 impl<'a, C: Coord + 'a, V: Debug + Clone + PartialEq + Eq + Hash>
-    crate::ShapeContainerIterator<'a, C, V> for HashShapeContainerIterator<'a, C, V>
+crate::ShapeContainerIterator<'a, C, V> for HashShapeContainerIterator<'a, C, V>
 where
     V: Debug + Clone,
-{
-}
+{}
 
 //////////////////////////////////////////////////////////////////////////////
 
 impl<MC: ModuleCoord, V: Debug + Clone + PartialEq + Eq + Hash> crate::ModuleShapeContainer<MC, V>
-    for HashShapeContainer<MC, V>
+for HashShapeContainer<MC, V>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     fn translate(&self, offset: &MC) -> Self {
         let new_map = self

@@ -3,7 +3,7 @@ use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::Painter;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, Theme};
+use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, Theme};
 use endgame_grid::dynamic;
 use std::ops::Deref;
 
@@ -60,11 +60,13 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         // No-op if the grid kind does not support ModuleCoord.
         // Also reset the selected coordinates.
         if !demo.grid_kind.is_modular() {
@@ -78,18 +80,20 @@ impl ExampleUi for Ui {
             &mut demo.clicks.borrow_mut(),
             &mut self.coord1,
         );
+        
+         */
 
         let Some(coord1) = self.coord1 else {
             return;
         };
 
         endgame_egui::render_coord_cell(
-            dszg,
+            _dszg,
             &coord1,
             &common::SOURCE_CELL_SPEC,
             None::<&str>,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
 
         // TODO Can we extend dynamic to support ModuleCoord?
@@ -100,22 +104,22 @@ impl ExampleUi for Ui {
         };
 
         endgame_egui::render_coord_cell(
-            dszg,
+            _dszg,
             &coord2,
             &common::TARGET_CELL_SPEC,
             None::<&str>,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
 
         render_hollow_arrow_coords(
-            dszg,
+            _dszg,
             &coord1,
             &coord2,
             common::HOLLOW_ARROW_STYLE.deref(),
             None,
-            transform,
-            painter,
+            _transform,
+            _painter,
         );
     }
 }

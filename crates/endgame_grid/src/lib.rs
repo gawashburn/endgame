@@ -146,7 +146,7 @@ pub trait Coord: PartialEq + Eq + Clone + Hash + Debug + Display + Sync + Send {
         dir_type: DirectionType,
         dir: Direction,
         range: RB,
-    ) -> impl Iterator<Item = Self>;
+    ) -> impl Iterator<Item=Self>;
 
     /// Produce an iterator that will step through coordinates between
     /// this `Coord` and the `other` `Coord`.  The path produced by the
@@ -161,7 +161,7 @@ pub trait Coord: PartialEq + Eq + Clone + Hash + Debug + Display + Sync + Send {
     /// this is not quite the same as a "line drawing algorithm" as
     /// some line drawing algorithms will traverse diagonally along
     /// vertex directions.
-    fn path_iterator(&self, other: &Self) -> impl Iterator<Item = Self>;
+    fn path_iterator(&self, other: &Self) -> impl Iterator<Item=Self>;
 
     /// Produce an iterator that will step through coordinates along the
     /// given axis, either in the positive or negative direction.
@@ -174,7 +174,7 @@ pub trait Coord: PartialEq + Eq + Clone + Hash + Debug + Display + Sync + Send {
         axis: Self::Axes,
         positive: bool,
         range: RB,
-    ) -> impl Iterator<Item = Self>;
+    ) -> impl Iterator<Item=Self>;
 
     /// Is it possible to move in the given `Direction` from this
     /// coordinate?
@@ -330,7 +330,7 @@ pub trait SizedGrid {
         &self,
         min: Point,
         max: Point,
-    ) -> Option<impl Iterator<Item = Self::Coord>>;
+    ) -> Option<impl Iterator<Item=Self::Coord>>;
 
     /// Check if a given `Coord` contains the provided `Point`.
     fn coord_contains(&self, coord: &Self::Coord, point: Point) -> bool {
@@ -347,10 +347,15 @@ pub trait SizedGrid {
 
 /// An abstraction for representing finite portions of an infinite grid plane.
 pub trait Shape<C: Coord>:
-    Debug + Clone + PartialEq + Eq + Hash + IntoIterator + std::ops::Sub<Output = Self>
+Debug + Clone + PartialEq + Eq + Hash + IntoIterator + std::ops::Sub<Output=Self>
 where
-    for<'a> Self: std::ops::Sub<&'a Self, Output = Self>,
+        for<'a> Self: std::ops::Sub<&'a Self, Output=Self>,
 {
+    type Iterator<'a>: ShapeIterator<'a, C>
+    where
+        Self: 'a,
+        C: 'a;
+
     /// Create an empty `Shape`.
     fn new() -> Self;
 
@@ -378,13 +383,13 @@ where
         C: 'a;
 
     /// Obtain an iterator over coordinates in the `Shape`.
-    fn iter<'a>(&'a self) -> impl ShapeIterator<'a, C>
+    fn iter<'a>(&'a self) -> Self::Iterator<'a>
     where
         C: 'a;
 }
 
 /// A trait for iterators over coordinates in a `Shape`.
-pub trait ShapeIterator<'a, C: Coord + 'a>: Iterator<Item = &'a C> {}
+pub trait ShapeIterator<'a, C: Coord + 'a>: Iterator<Item=&'a C> {}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -392,8 +397,8 @@ pub trait ShapeIterator<'a, C: Coord + 'a>: Iterator<Item = &'a C> {}
 /// ModuleCoord and thus support translation.
 pub trait ModuleShape<MC: ModuleCoord>: Shape<MC>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     /// Translate the shape by the given coordinate offset.
     fn translate(&self, offset: &MC) -> Self;
@@ -404,10 +409,16 @@ where
 /// An abstraction for associating values with coordinates in a finite
 /// portion of an infinite grid plane.
 pub trait ShapeContainer<C: Coord, V>:
-    Debug + Clone + PartialEq + Eq + Hash + IntoIterator
+Debug + Clone + PartialEq + Eq + Hash + IntoIterator
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
 {
+    type Iterator<'a>: ShapeContainerIterator<'a, C, V>
+    where
+        Self: 'a,
+        C: 'a,
+        V: 'a;
+
     /// Checks whether the given grid coordinate is contained within the
     /// bounds `Shape`.  This is relatively generic as it allows for
     /// grids to have irregularly shaped bounds.
@@ -431,17 +442,19 @@ where
     /// Are there no coordinates in this shape?
     fn is_empty(&self) -> bool;
 
+    /// TODO
+    fn as_shape(&self) -> impl Shape<C>;
+
     /// Obtain an iterator over coordinates and values in the `ShapeContainer`.
-    fn iter<'a>(&'a self) -> impl ShapeContainerIterator<'a, C, V>
+    fn iter<'a>(&'a self) -> Self::Iterator<'a>
     where
         C: 'a,
         V: 'a;
 }
 /// A trait for iterators over coordinates and their values in a `ShapeContainer`.
 pub trait ShapeContainerIterator<'a, C: Coord + 'a, V: 'a>:
-    Iterator<Item = (&'a C, &'a V)>
-{
-}
+Iterator<Item=(&'a C, &'a V)>
+{}
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -450,8 +463,8 @@ pub trait ShapeContainerIterator<'a, C: Coord + 'a, V: 'a>:
 pub trait ModuleShapeContainer<MC: ModuleCoord, V>: ShapeContainer<MC, V>
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     /// Translate the shape by the given coordinate offset.
     fn translate(&self, offset: &MC) -> Self;

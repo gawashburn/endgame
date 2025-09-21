@@ -3,10 +3,7 @@ use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::emath::RectTransform;
 use egui::{Color32, Painter};
-use endgame_egui::{
-    alter_segment_length, coord_to_egui_pos2, egui_pos2_to_glam_vec2, glam_vec2_to_egui_pos2, render_hollow_arrow_coords, CellStyle,
-    HollowArrowStyle, LabelStyle, SolidArrowStyle, Theme,
-};
+use endgame_egui::{alter_segment_length, coord_to_egui_pos2, egui_pos2_to_glam_vec2, glam_vec2_to_egui_pos2, render_hollow_arrow_coords, CellStyle, GridContext, HollowArrowStyle, LabelStyle, SolidArrowStyle, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType, SizedGrid};
 use std::f32::consts::{PI, TAU};
 use std::ops::Deref;
@@ -60,17 +57,21 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
             &mut demo.clicks.borrow_mut(),
             &mut self.source,
         );
+
+         */
 
         let Some(coord) = self.source else {
             return;
@@ -87,17 +88,18 @@ impl ExampleUi for Ui {
                 add_shadow: Some(Color32::GRAY),
             }),
         };
-        let start_screen = transform.transform_pos(coord_to_egui_pos2(&coord, dszg));
+        let start_screen = _transform.transform_pos(coord_to_egui_pos2(&coord, _dszg));
 
         let (start, end) = alter_segment_length(
             egui_pos2_to_glam_vec2(start_screen),
-            egui_pos2_to_glam_vec2(demo.mouse),
+            egui_pos2_to_glam_vec2(start_screen),
+            //   egui_pos2_to_glam_vec2(demo.mouse),
             20.0,
             -10.0,
         );
 
         // Ensure that arrow scales the same way the coordinate one does.
-        let width = 12.0 * (dszg.inradius() / 64.0);
+        let width = 12.0 * (_dszg.inradius() / 64.0);
         let mouse_style = HollowArrowStyle {
             width: width.min(12.0),
             ..common::HOLLOW_ARROW_STYLE.deref().clone()
@@ -107,27 +109,27 @@ impl ExampleUi for Ui {
             glam_vec2_to_egui_pos2(end),
             &mouse_style,
             None,
-            painter,
+            _painter,
         );
 
         let mouse_vec = end - start;
         let angle = mouse_vec.to_angle().rem_euclid(TAU);
 
         let dir = coord.angle_to_direction(self.dir_type, angle);
-        let cell_steps = ((mouse_vec.length() / (2.0 * dszg.inradius())) as usize).max(1) + 2;
+        let cell_steps = ((mouse_vec.length() / (2.0 * _dszg.inradius())) as usize).max(1) + 2;
         let dir_iter = coord.direction_iterator(self.dir_type, dir, ..=cell_steps);
         if let Some(dir_coord) = dir_iter.last() {
             //u_coord.move_in_direction(self.dir_type, dir) {
-            let offset_screen = transform.transform_pos(coord_to_egui_pos2(&dir_coord, dszg));
+            let offset_screen = _transform.transform_pos(coord_to_egui_pos2(&dir_coord, _dszg));
 
             render_hollow_arrow_coords(
-                dszg,
+                _dszg,
                 &coord,
                 &dir_coord,
                 common::HOLLOW_ARROW_STYLE.deref(),
                 None,
-                transform,
-                painter,
+                _transform,
+                _painter,
             );
 
             let start_pos = glam_vec2_to_egui_pos2(start);
@@ -153,7 +155,7 @@ impl ExampleUi for Ui {
                     start_angle + angle_diff - (PI / 32.0),
                     &arc_arrow_style,
                     Some(angle_str.as_str()),
-                    painter,
+                    _painter,
                 );
             }
         }

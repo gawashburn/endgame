@@ -3,11 +3,8 @@ use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::Painter;
-use endgame_egui::{
-    egui_pos2_to_glam_vec2, render_hollow_arrow_coords, CellBorderStyle, CellStyle, Theme,
-};
+use endgame_egui::{CellStyle, GridContext, Theme};
 use endgame_grid::{dynamic, Coord, SizedGrid};
-use std::ops::Deref;
 
 pub struct Ui {
     axis: Option<dynamic::Axes>,
@@ -72,11 +69,13 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
@@ -142,5 +141,6 @@ impl ExampleUi for Ui {
             }
             prev_coord = Some(coord.clone());
         }
+         */
     }
 }

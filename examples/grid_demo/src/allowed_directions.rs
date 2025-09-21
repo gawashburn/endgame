@@ -3,7 +3,7 @@ use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::emath::RectTransform;
 use egui::Painter;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, HollowArrowStyle, LabelStyle, Theme};
+use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, HollowArrowStyle, LabelStyle, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType};
 use std::ops::Deref;
 
@@ -54,17 +54,19 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
             &mut demo.clicks.borrow_mut(),
             &mut self.source,
         );
+*/
 
         let Some(coord) = self.source else {
             return;
@@ -82,13 +84,13 @@ impl ExampleUi for Ui {
         for dir in &coord.allowed_directions(self.dir_type) {
             if let Some(move_coord) = coord.move_in_direction(self.dir_type, dir) {
                 render_hollow_arrow_coords(
-                    dszg,
+                    _dszg,
                     &coord,
                     &move_coord,
                     &arrow_style,
                     Some(dir.short_name()),
-                    transform,
-                    painter,
+                    _transform,
+                    _painter,
                 );
             }
         }

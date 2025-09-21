@@ -2,8 +2,8 @@ use crate::{common, ExampleUi, GridDemo, GridExample};
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
-use egui::Painter;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, Theme};
+use egui::{Painter, Sense};
+use endgame_egui::{egui_pos2_to_coord, render_hollow_arrow_coords, CellStyle, GridContext, Theme};
 use endgame_grid::{dynamic, Coord};
 use std::ops::Deref;
 
@@ -55,17 +55,27 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        let prc = _ctx.ui.interact(_ctx.response.rect, _ctx.response.id, Sense::click());
+        if prc.clicked() {
+            let pos = prc.interact_pointer_pos().unwrap();
+            let pos2 = _ctx.to_screen_transform.inverse().transform_pos(pos);
+            self.source = Some(egui_pos2_to_coord(pos2, &_ctx.szg));
+        }
+
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
             &mut demo.clicks.borrow_mut(),
             &mut self.source,
         );
+
+         */
 
         let Some(coord) = self.source else {
             return;
@@ -75,12 +85,12 @@ impl ExampleUi for Ui {
         let mut cur_coord = coord;
         loop {
             endgame_egui::render_coord_cell(
-                dszg,
+                _dszg,
                 &cur_coord,
                 &spec,
                 None::<&str>,
-                transform,
-                painter,
+                _transform,
+                _painter,
             );
             let next_coord = if self.clockwise {
                 cur_coord.rotate_clockwise()
@@ -88,13 +98,13 @@ impl ExampleUi for Ui {
                 cur_coord.rotate_counterclockwise()
             };
             render_hollow_arrow_coords(
-                dszg,
+                _dszg,
                 &cur_coord,
                 &next_coord,
                 common::HOLLOW_ARROW_STYLE.deref(),
                 None,
-                transform,
-                painter,
+                _transform,
+                _painter,
             );
 
             if next_coord == coord {

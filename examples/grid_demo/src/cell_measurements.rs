@@ -4,7 +4,7 @@ use eframe::epaint::text::LayoutJob;
 use eframe::epaint::{Color32, FontId};
 use egui::Painter;
 use endgame_direction::Direction;
-use endgame_egui::{CellStyle, LabelStyle, SolidArrowStyle, Theme};
+use endgame_egui::{CellStyle, GridContext, LabelStyle, SolidArrowStyle, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType, SizedGrid};
 use std::f32::consts::TAU;
 
@@ -88,25 +88,28 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
+        _ctx: &GridContext<dynamic::SizedGrid>,
+        //demo: &GridDemo,
+        _dszg: &dynamic::SizedGrid,
+        _transform: &RectTransform,
+        _painter: &Painter,
     ) {
+        /*
         common::unary_coordinates_select(
             dszg,
             demo.grid_kind,
             &mut demo.clicks.borrow_mut(),
             &mut self.source,
         );
+         */
 
         let Some(coord) = self.source else {
             return;
         };
 
-        let screen = transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, dszg));
+        let screen = _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, _dszg));
 
-        let vertices = dszg.vertices(&coord);
+        let vertices = _dszg.vertices(&coord);
 
         let style = SolidArrowStyle {
             color: Color32::BLACK,
@@ -122,22 +125,22 @@ impl ExampleUi for Ui {
 
         match self.measurement {
             Measurement::Inradius => {
-                let label = format!("{:.2}", dszg.inradius());
-                let center = dszg.grid_to_screen(&coord);
+                let label = format!("{:.2}", _dszg.inradius());
+                let center = _dszg.grid_to_screen(&coord);
                 let rel_v0 = vertices[0] - center;
                 let rel_v1 = vertices[1] - center;
                 let mid_angle =
                     (rel_v0.to_angle().rem_euclid(TAU) + rel_v1.to_angle().rem_euclid(TAU)) / 2.0;
 
-                let midpoint = center + (glam::Vec2::from_angle(mid_angle) * dszg.inradius());
+                let midpoint = center + (glam::Vec2::from_angle(mid_angle) * _dszg.inradius());
                 let endpoint =
-                    transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(midpoint));
+                    _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(midpoint));
 
-                endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), painter);
+                endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), _painter);
 
-                painter.circle_stroke(
+                _painter.circle_stroke(
                     screen,
-                    dszg.inradius(),
+                    _dszg.inradius(),
                     egui::Stroke {
                         width: 2.0,
                         color: Color32::BLACK,
@@ -145,15 +148,15 @@ impl ExampleUi for Ui {
                 );
             }
             Measurement::Circumradius => {
-                let label = format!("{:.2}", dszg.circumradius());
+                let label = format!("{:.2}", _dszg.circumradius());
 
                 let endpoint =
-                    transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(vertices[0]));
-                endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), painter);
+                    _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(vertices[0]));
+                endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), _painter);
 
-                painter.circle_stroke(
+                _painter.circle_stroke(
                     screen,
-                    dszg.circumradius(),
+                    _dszg.circumradius(),
                     egui::Stroke {
                         width: 2.0,
                         color: Color32::BLACK,
@@ -161,23 +164,23 @@ impl ExampleUi for Ui {
                 );
             }
             Measurement::Edge => {
-                let edge_map = dszg.edges(&coord);
+                let edge_map = _dszg.edges(&coord);
                 let dir = Direction::from_u8(self.direction);
 
                 // If the coordinate has this edge, draw the measurement.
                 if let Some((start, end)) = edge_map.get(&dir) {
-                    let v0 = transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*start));
-                    let v1 = transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*end));
+                    let v0 = _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*start));
+                    let v1 = _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*end));
                     let label = format!("{:.2}", (end - start).length());
 
-                    endgame_egui::render_arrow(v0, v1, &style, Some(label.as_str()), painter);
+                    endgame_egui::render_arrow(v0, v1, &style, Some(label.as_str()), _painter);
                 } else {
                     endgame_egui::render_disallowed(
-                        endgame_egui::coord_to_egui_pos2(&coord, dszg),
-                        dszg.inradius() * 0.66,
-                        8.0 * (demo.grid_size / 64.0),
-                        transform,
-                        painter,
+                        endgame_egui::coord_to_egui_pos2(&coord, _dszg),
+                        _dszg.inradius() * 0.66,
+                        8.0 * (_ctx.szg.inradius() / 64.0),
+                        _transform,
+                        _painter,
                     );
                     return;
                 }
