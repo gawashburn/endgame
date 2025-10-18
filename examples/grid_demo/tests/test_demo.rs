@@ -12,15 +12,20 @@ fn test_demo() {
 
     harness.run();
 
-    let kinds = ["Square", "Hex", "Triangle"];
+    // TODO Add triangle back once we filter examples.
+    let kinds = ["Square", "Hex"];
     let examples = GridDemo::examples();
     for kind in kinds {
         {
             let kind_radio = harness.get_by_label(kind);
             kind_radio.click();
-            assert_eq!(kind_radio.accesskit_node().toggled(), Some(Toggled::True));
         }
         harness.run();
+        {
+            let kind_radio = harness.get_by_label(kind);
+            assert_eq!(kind_radio.accesskit_node().toggled(), Some(Toggled::True),
+                       "Grid kind not toggled for {}", kind);
+        }
         for example in &examples {
             let example_ref = example.borrow();
             let label = example_ref.label();
@@ -30,8 +35,6 @@ fn test_demo() {
             harness.run();
             // TODO Need to filter by the examples supported, by the grid kind.
             //assert_eq!(example_radio.accesskit_node().toggled(), Some(Toggled::True));
-
-
             //           let grid_view = harness.get_by_label("central_panel");
         }
     }

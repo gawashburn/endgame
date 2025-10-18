@@ -152,7 +152,7 @@ impl ExampleUi for Ui {
 
         let mut opt_shape = None::<HashShape<dynamic::Coord>>;
 
-        let grid_kind = dynamic::Kind::Square; // demo.grid_kind;
+        let grid_kind = _dszg.kind();
         for instance in self.shapes.values() {
             let shape = match instance.choice {
                 ShapeChoice::Ring => dynamic::Coord::ring(grid_kind, instance.size),
