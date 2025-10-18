@@ -14,40 +14,34 @@ pub trait State<G: Game>: Debug + Eq + Clone + Hash + Sized + Sync + Send {
     /// Is this a terminal state for the `Game`?
     fn is_over(&self) -> bool;
 
-    /// What moves are available for the given `Player` from this `State`?
-    /// If there are none for all `Player`s, this is a terminal state.
-    /// For simplicity, in games where a player has no valid moves, but the
-    /// game is not actually over, this would be itself encoded as an explicit
-    /// "pass" move.
+    /// What moves are available for the given `Player` from this `State`? If there are none for 
+    /// all `Player`s, this is a terminal state.  For simplicity, in games where a player has no
+    /// valid moves, but the game is not over, this would be itself encoded as an explicit "pass"
+    /// move.
     ///
-    /// It must be the case that when calling `next`, all moves for a given
-    /// player are compatible with all possible moves of all other players.
-    /// For example, consider a game where players are moving pieces on a
-    /// shared board.  If only one piece can be in a given location, then
-    /// multiple players moving a piece to the same location would generally
-    /// not be possible.  There are a number of different ways to resolve this conflict,
-    /// but they will be game specific.  One approach would be to introduce some kind of
-    /// tie-breaking rule.  Or if a move could conflict it would just not be
-    /// reported a possible move, etc.
-    fn moves<'l>(&'l self, player: &G::Player) -> G::MoveIterator<'l>;
+    /// It must be the case that when calling `next`, all moves for a given player are compatible
+    /// with all possible moves of all other players.  For example, consider a game where players 
+    /// are moving pieces on a shared board.  If only one piece can be in a given location, then
+    /// multiple players moving a piece to the same location would generally not be possible.
+    /// There are a number of different ways to resolve this conflict, but these solutions will be
+    /// specific to the game design.  One approach would be to introduce some kind of tiebreaking
+    /// rule.  Or if a move could conflict, it would just not be reported as a possible move, etc.
+    fn moves(&self, player: &G::Player) -> G::MoveIterator<'_>;
 
-    /// Compute the new state resulting from making the given moves, if
-    /// there is one.  This will only produce a result for moves returned
-    /// by the moves() function.
+    /// Compute the new state resulting from making the given moves, if there is one.  This will
+    /// only produce a result for moves returned by the `moves` function.
     fn next(&self, moves: &HashMap<G::Player, G::Move>) -> Option<Self>;
 
-    /// Returns a map payoffs for this state.  A positive payoff corresponds to
-    /// winning, a negative a payoff corresponds to losing, and a zero payoff
-    /// indicates a draw or no conclusion yet.  The magnitude of the payoff
-    /// corresponds to the strength of the win or loss.  In games where there
-    /// is no scoring, the payoffs will generally be normalized to the unit
+    /// Returns `Payoffs` for this `State`.  A positive payoff corresponds to winning, a negative
+    /// payoff corresponds to losing, and a zero payoff indicates a draw or no conclusion yet.
+    /// The magnitude of the payoff value corresponds to the strength of the win or loss.
+    /// In games where there is no scoring, the payoffs will generally be normalized to the unit
     /// magnitude.
     ///
-    /// Unlike some other designs, returning the payoff of all players is
-    /// intended to perhaps simplify some computations.  Other implementations
-    /// of games tend to make the payoff relative to the current player.  This
-    /// leads to code that needs to negate or swap values when propagating
-    /// the payoffs  back through earlier search states.
+    /// Unlike some other designs, returning the payoff of all players is intended to perhaps
+    /// simplify some computations.  Other implementations of games tend to make the payoff
+    /// relative to the current player.  This leads to code that needs to negate or swap values 
+    /// when propagating the `Payoffs` back through earlier search states.
     fn payoffs(&self) -> Payoffs<G>;
 }
 

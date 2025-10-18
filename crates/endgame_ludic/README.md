@@ -9,9 +9,10 @@ turn based games.
 Todo:
 
 * Extend `game::State` with an optional method for producing a set of game
-  states along with isomorphisms betwen them and the current state. This would
+  states along with isomorphisms between them and the current state. This would
   be useful in search space reduction in the case that there are various
   symmetries in the game that could be exploited.
+* Add additional primitive `Strategy`s.
 * Consider adding game combinators. Such as parallel or sequential composition
   of games. While perhaps an interesting exercise, whether these would be of
   general utility beyond computational game theory is questionable.
