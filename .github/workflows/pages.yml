@@ -2,8 +2,8 @@ name: Deploy Pages
 
 on:
   workflow_run:
-    workflows: ["Tests"]
-    types: [completed]
+    workflows: [ "Tests" ]
+    types: [ completed ]
 
 permissions:
   contents: read
@@ -37,6 +37,9 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
+      - name: Ensure wasm32 target installed
+        run: rustup target add wasm32-unknown-unknown
+
       - name: Cache cargo registry
         uses: actions/cache@v4
         with:
@@ -47,7 +50,9 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install trunk
-        run: cargo install trunk
+        uses: jetli/trunk-action@v0.5.1
+        with:
+          version: 'latest'
 
       - name: Build grid_demo with trunk
         working-directory: examples/grid_demo
