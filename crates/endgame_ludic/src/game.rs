@@ -19,7 +19,17 @@ pub trait State<G: Game>: Debug + Eq + Clone + Hash + Sized + Sync + Send {
     /// For simplicity, in games where a player has no valid moves, but the
     /// game is not actually over, this would be itself encoded as an explicit
     /// "pass" move.
-    fn moves<'l>(&'l self, player: G::Player) -> G::MoveIterator<'l>;
+    ///
+    /// It must be the case that when calling `next`, all moves for a given
+    /// player are compatible with all possible moves of all other players.
+    /// For example, consider a game where players are moving pieces on a
+    /// shared board.  If only one piece can be in a given location, then
+    /// multiple players moving a piece to the same location would generally
+    /// not be possible.  There are a number of different ways to resolve this conflict,
+    /// but they will be game specific.  One approach would be to introduce some kind of
+    /// tie-breaking rule.  Or if a move could conflict it would just not be
+    /// reported a possible move, etc.
+    fn moves<'l>(&'l self, player: &G::Player) -> G::MoveIterator<'l>;
 
     /// Compute the new state resulting from making the given moves, if
     /// there is one.  This will only produce a result for moves returned
@@ -44,7 +54,7 @@ pub trait State<G: Game>: Debug + Eq + Clone + Hash + Sized + Sync + Send {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// TODO Seems like Clone shouldn't really be necessary?
-pub trait Game: Clone + Sized {
+pub trait Game: Clone + Default + Sized {
     /// Descriptive name for the game.  For use in debugging output, etc.
     fn name() -> String;
 

@@ -7,7 +7,7 @@ use regex::RegexSet;
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
 use std::fmt::Display;
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// An enumeration of compass directions.  The traditional "cardinal" directions,
 /// along the "ordinal" ones as well.
@@ -184,7 +184,7 @@ impl std::ops::Not for Direction {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// A structure representing a set of directions.  Conveniently, this crate's
 /// `Direction` type only models eight possible directions, so it is possible
@@ -253,7 +253,7 @@ impl<'a> IntoIterator for &'a DirectionSet {
 }
 
 impl FromIterator<Direction> for DirectionSet {
-    fn from_iter<I: IntoIterator<Item = Direction>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item=Direction>>(iter: I) -> Self {
         let mut set = DirectionSet::new();
         for dir in iter {
             set.insert(dir);

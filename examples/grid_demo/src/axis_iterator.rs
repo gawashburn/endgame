@@ -1,4 +1,6 @@
-use crate::{common, ExampleUi, GridDemo};
+use crate::common;
+use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
@@ -25,8 +27,8 @@ impl Default for Ui {
 }
 
 impl ExampleUi for Ui {
-    fn example(&self) -> crate::GridExample {
-        crate::GridExample::AxisIterator
+    fn example(&self) -> GridExample {
+        GridExample::AxisIterator
     }
 
     fn label(&self) -> &'static str {

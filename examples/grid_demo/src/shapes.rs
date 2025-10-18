@@ -1,4 +1,6 @@
-use crate::{common, ExampleUi, GridDemo, GridExample};
+use crate::common;
+use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
@@ -172,6 +174,6 @@ impl ExampleUi for Ui {
         }
 
         let Some(shape) = opt_shape else { return };
-        render_shape(_dszg, &shape, &base_style, _transform, _painter);
+        render_shape(_dszg, &shape, &base_style, None, _transform, _painter);
     }
 }

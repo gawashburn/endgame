@@ -18,7 +18,7 @@ pub type Payoff = OrderedFloat<f64>;
 /// Payoffs are a vector of individual payoffs. The length of will be dependent
 /// on the number of players.  As players must be convertible to an index, that
 /// index corresponds to the location in vector for that player's payoff.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Payoffs<G: Game> {
     payoffs: HashMap<G::Player, Payoff>,
 }

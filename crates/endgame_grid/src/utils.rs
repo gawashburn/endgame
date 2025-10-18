@@ -6,10 +6,10 @@ use itertools::Itertools;
 use ordered_float::OrderedFloat;
 use std::collections::HashSet;
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Helper to convert a slice of polygon vertices into an iterator over its edges.
-pub fn vertices_to_edges(vertices: &[Vec2]) -> impl Iterator<Item = (Vec2, Vec2)> {
+pub fn vertices_to_edges(vertices: &[Vec2]) -> impl Iterator<Item=(Vec2, Vec2)> {
     assert!(vertices.len() >= 3, "Polygon must have at least 3 vertices");
     // To ensure that we handle the end from the last vertex to the first,
     // we add it to the end before windowing.
@@ -82,7 +82,7 @@ pub fn convex_poly_intersects_rect(polygon: &[Vec2], min: Vec2, max: Vec2) -> bo
     true
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// A generic implementation for producing rings by rotating to
 /// find the corners, and then moving between them along the axes.
@@ -133,15 +133,15 @@ pub fn ring<C: Coord>(
     HashShape::from_iter(coords.into_iter())
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// A generic iterator for traversing grids where the coordinates form an
 /// algebraic module.
 #[derive(Debug, Clone)]
 pub struct ModuleCoordIter<MC: ModuleCoord, RB: AllowedCoordIterRange>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     pub coord: MC,
     pub opt_offset: Option<MC>,
@@ -151,8 +151,8 @@ where
 
 impl<MC: ModuleCoord, RB: AllowedCoordIterRange> Iterator for ModuleCoordIter<MC, RB>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     type Item = MC;
 

@@ -1,4 +1,6 @@
-use crate::{common, ExampleUi, GridDemo, GridExample};
+use crate::common;
+use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::{Color32, FontId};
@@ -91,7 +93,7 @@ impl ExampleUi for Ui {
         _ctx: &GridContext<dynamic::SizedGrid>,
         //demo: &GridDemo,
         _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
+        transform: &RectTransform,
         _painter: &Painter,
     ) {
         /*
@@ -107,7 +109,7 @@ impl ExampleUi for Ui {
             return;
         };
 
-        let screen = _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, _dszg));
+        let screen = transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, _dszg));
 
         let vertices = _dszg.vertices(&coord);
 
@@ -134,7 +136,7 @@ impl ExampleUi for Ui {
 
                 let midpoint = center + (glam::Vec2::from_angle(mid_angle) * _dszg.inradius());
                 let endpoint =
-                    _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(midpoint));
+                    transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(midpoint));
 
                 endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), _painter);
 
@@ -151,7 +153,7 @@ impl ExampleUi for Ui {
                 let label = format!("{:.2}", _dszg.circumradius());
 
                 let endpoint =
-                    _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(vertices[0]));
+                    transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(vertices[0]));
                 endgame_egui::render_arrow(screen, endpoint, &style, Some(label.as_str()), _painter);
 
                 _painter.circle_stroke(
@@ -169,17 +171,17 @@ impl ExampleUi for Ui {
 
                 // If the coordinate has this edge, draw the measurement.
                 if let Some((start, end)) = edge_map.get(&dir) {
-                    let v0 = _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*start));
-                    let v1 = _transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*end));
+                    let v0 = transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*start));
+                    let v1 = transform.transform_pos(endgame_egui::glam_vec2_to_egui_pos2(*end));
                     let label = format!("{:.2}", (end - start).length());
 
                     endgame_egui::render_arrow(v0, v1, &style, Some(label.as_str()), _painter);
                 } else {
+                    let pos = transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, _dszg));
                     endgame_egui::render_disallowed(
                         endgame_egui::coord_to_egui_pos2(&coord, _dszg),
                         _dszg.inradius() * 0.66,
                         8.0 * (_ctx.szg.inradius() / 64.0),
-                        _transform,
                         _painter,
                     );
                     return;

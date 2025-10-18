@@ -2,24 +2,25 @@ use endgame_direction::Direction;
 use endgame_grid::shape::{HashShapeContainer, HashShapeContainerIterator};
 use endgame_grid::square;
 use endgame_grid::{Coord, DirectionType, ShapeContainer};
-use endgame_ludic::game::{Game, State};
+use endgame_ludic::game;
 use endgame_ludic::payoffs::Payoffs;
 use ordered_float::OrderedFloat;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO Generalize to additional players for testing?
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash, Debug, Serialize, Deserialize)]
-pub enum TicTacToePlayer {
+pub enum Player {
     X,
     O,
 }
 
-impl TicTacToePlayer {
+impl Player {
     pub fn as_str(&self) -> &str {
-        use TicTacToePlayer::*;
+        use Player::*;
         match self {
             X => "X",
             O => "O",
@@ -27,35 +28,40 @@ impl TicTacToePlayer {
     }
 }
 
-impl Display for TicTacToePlayer {
+impl Display for Player {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
 
-// Create trait?
-impl TicTacToePlayer {
+// TODO Create trait?
+impl Player {
     pub fn next(self) -> Self {
+        use Player::*;
         match self {
-            TicTacToePlayer::X => TicTacToePlayer::O,
-            TicTacToePlayer::O => TicTacToePlayer::X,
+            X => O,
+            O => X,
         }
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
-pub struct TicTacToeMove<const N: usize>(pub square::Coord);
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct MoveIterator<'l, const N: usize> {
-    state: &'l TicTacToeState<N>,
-    iter: HashShapeContainerIterator<'l, square::Coord, Option<TicTacToePlayer>>,
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy, Serialize, Deserialize)]
+pub struct Move(pub square::Coord);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct MoveIterator<'l> {
+    state: &'l State,
+    iter: HashShapeContainerIterator<'l, square::Coord, Option<Player>>,
 }
 
-impl<'l, const N: usize> Iterator for MoveIterator<'l, N> {
-    type Item = TicTacToeMove<N>;
+impl<'l> Iterator for MoveIterator<'l> {
+    type Item = Move;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.state.is_over() {
+        if <State as game::State<Game>>::is_over(self.state) {
             return None;
         }
         // Iterate over the grid until we find an empty square.
@@ -64,29 +70,33 @@ impl<'l, const N: usize> Iterator for MoveIterator<'l, N> {
                 // If the square is occupied, continue to the next square.
                 Some(_) => continue,
                 // If the square is empty, return the move.
-                None => return Some(TicTacToeMove(*coord)),
+                None => return Some(Move(*coord)),
             }
         }
         None
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
-pub struct TicTacToeState<const N: usize> {
+pub struct State {
+    /// The size of game board.
+    size: usize,
     /// Keeping track of turns in the struct is not strictly necessary,
     /// as we can extract that from the board.  But it makes things
     /// simpler.
     turns: usize,
     /// The player making the next move.
-    player: TicTacToePlayer,
+    player: Player,
     /// The state of the board.
-    board: HashShapeContainer<square::Coord, Option<TicTacToePlayer>>,
+    board: HashShapeContainer<square::Coord, Option<Player>>,
 }
 
-impl<const N: usize> Display for TicTacToeState<N> {
+impl Display for State {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in 0..N {
-            for col in 0..N {
+        for row in 0..self.size {
+            for col in 0..self.size {
                 match self.board.get(&square::Coord::new(col as i32, row as i32)) {
                     Some(Some(p)) => f.write_str(p.as_str())?,
                     _ => f.write_str(".")?,
@@ -98,44 +108,63 @@ impl<const N: usize> Display for TicTacToeState<N> {
     }
 }
 
-impl<const N: usize> TicTacToeState<N> {
+impl State {
+    fn new(size: usize) -> Self {
+        // Minimum board size is 1.
+        assert!(size > 0);
+        // TODO Annoying that we cannot use `range` function for this
+        let mut board = HashShapeContainer::new();
+        for x in 0..size {
+            for y in 0..size {
+                board.insert(square::Coord::new(x as i32, y as i32), None);
+            }
+        }
+        Self {
+            size,
+            turns: 0,
+            // X always starts first.
+            player: Player::X,
+            board,
+        }
+    }
+
     /// Check to see if the given player has a win.
-    fn winner(&self, player: TicTacToePlayer) -> bool {
+    fn winner(&self, player: Player) -> bool {
         let check_line = |x: usize, y: usize, dir_type: DirectionType, dir: Direction| {
             square::Coord::new(x as i32, y as i32)
-                .direction_iterator(dir_type, dir, ..N)
+                .direction_iterator(dir_type, dir, ..self.size)
                 .take_while(|c| self.board.get(c) == Some(&Some(player)))
                 .count()
-                >= N
+                >= self.size
         };
 
         // Check all columns
-        (0..N).any(|col| {
+        (0..self.size).any(|col| {
             check_line(col, 0, DirectionType::Face, Direction::North)
         }) ||
             // Check all rows
-            (0..N).any(|row| {
+            (0..self.size).any(|row| {
                 check_line(0, row, DirectionType::Face, Direction::East)
             }) ||
             // Check the upper-left to lower-right diagonal
             check_line(0, 0, DirectionType::Vertex, Direction::NorthEast)
             ||
             // Check the lower-left to upper-right diagonal
-            check_line(N, 0, DirectionType::Vertex, Direction::NorthWest)
+            check_line(self.size, 0, DirectionType::Vertex, Direction::NorthWest)
     }
 
-    pub fn board(&self) -> &HashShapeContainer<square::Coord, Option<TicTacToePlayer>> {
+    pub fn board(&self) -> &HashShapeContainer<square::Coord, Option<Player>> {
         &self.board
     }
 }
 
-impl<const N: usize> State<TicTacToe<N>> for TicTacToeState<N> {
-    fn current_players(&self) -> HashSet<TicTacToePlayer> {
+impl game::State<Game> for State {
+    fn current_players(&self) -> HashSet<Player> {
         HashSet::from([self.player])
     }
 
     fn is_over(&self) -> bool {
-        use TicTacToePlayer::*;
+        use Player::*;
         // The game is over if one of the players won.
         self.winner(X) ||
             self.winner(O) ||
@@ -144,11 +173,11 @@ impl<const N: usize> State<TicTacToe<N>> for TicTacToeState<N> {
                 .filter(|(_, v)| v.is_none()).count() == 0
     }
 
-    fn moves(&self, player: TicTacToePlayer) -> MoveIterator<'_, N> {
+    fn moves(&self, player: &Player) -> MoveIterator<'_> {
         MoveIterator {
             state: &self,
             // If the provided player is not the current player, return an empty iterator.
-            iter: if self.player == player {
+            iter: if self.player == *player {
                 self.board.iter()
             } else {
                 HashShapeContainerIterator::empty()
@@ -156,7 +185,7 @@ impl<const N: usize> State<TicTacToe<N>> for TicTacToeState<N> {
         }
     }
 
-    fn next(&self, moves: &HashMap<TicTacToePlayer, TicTacToeMove<N>>) -> Option<Self> {
+    fn next(&self, moves: &HashMap<Player, Move>) -> Option<Self> {
         // If the game is over or an incorrect number of moves have been provided,
         // return None.
         if self.is_over() || moves.len() > 1 || moves.is_empty() {
@@ -168,24 +197,26 @@ impl<const N: usize> State<TicTacToe<N>> for TicTacToeState<N> {
         let Some(m) = moves.get(&self.player) else {
             return None;
         };
+        // TODO Verify move is allowed.
 
         let mut new_board = self.board.clone();
         let old_contents = new_board.insert(m.0, Some(self.player));
         assert!(old_contents.is_some(), "Square must be in the board");
         assert!(old_contents.unwrap().is_none(), "Square is already occupied");
-        Some(TicTacToeState {
+        Some(State {
+            size: self.size,
             turns: self.turns + 1,
             player: self.player.next(),
             board: new_board,
         })
     }
 
-    fn payoffs(&self) -> Payoffs<TicTacToe<N>> {
-        use TicTacToePlayer::*;
+    fn payoffs(&self) -> Payoffs<Game> {
+        use Player::*;
         // To encourage not just completely giving up, we adjust the score
         // based upon the number of turns.  Winning in fewer turns yields
         // a better score, while losing in more turns is better.
-        let max_moves = N * N;
+        let max_moves = self.size * self.size;
         let win_score = (1 + max_moves - self.turns) as f64 / max_moves as f64;
         let lose_score = -win_score;
         let (x_payoff, o_payoff) = if self.winner(X) {
@@ -200,68 +231,60 @@ impl<const N: usize> State<TicTacToe<N>> for TicTacToeState<N> {
     }
 }
 
-/*
-impl<const N: usize> GridState<TicTacToe<N>> for TicTacToeState<N> {
-    type CoordData = Option<TicTacToePlayer>;
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
-    type Grid = SquareFiniteGrid<Self::CoordData>;
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct Config {
+    /// The size of the game board.  This must be at least one.
+    pub size: usize,
+}
 
-    fn grid(&self) -> &Self::Grid {
-        &self.board
+impl Default for Config {
+    fn default() -> Self {
+        // Default to the traditional 3x3 game.
+        Self { size: 3 }
     }
 }
- */
 
-#[derive(Clone, Debug)]
-pub struct TicTacToe<const N: usize> {}
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
-impl<const N: usize> Game for TicTacToe<N> {
-    type Player = TicTacToePlayer;
+#[derive(Clone, Debug, Default)]
+pub struct Game {
+    config: Config,
+}
 
-    type Move = TicTacToeMove<N>;
+impl game::Game for Game {
+    type Player = Player;
 
-    type MoveIterator<'l> = MoveIterator<'l, N>;
+    type Move = Move;
 
-    type State = TicTacToeState<N>;
+    type MoveIterator<'l> = MoveIterator<'l>;
 
-    // TODO More TicTacToe options?
-    type Config = ();
+    type State = State;
+
+    type Config = Config;
 
     fn name() -> String {
-        "TicTacToe".to_string()
+        "Tic-Tac-Toe".to_string()
     }
 
-    fn new(_config: &Self::Config) -> Self {
-        Self {}
+    fn new(config: &Self::Config) -> Self {
+        assert!(config.size > 0);
+        Self { config: config.clone() }
     }
 
-    fn players(&self) -> HashSet<TicTacToePlayer> {
-        HashSet::from([TicTacToePlayer::X, TicTacToePlayer::O])
+    fn players(&self) -> HashSet<Player> {
+        use Player::*;
+        HashSet::from([X, O])
     }
 
-    /// Create a new initial starting state.
-    fn start(&self) -> TicTacToeState<N> {
-        // TODO Annoying that we cannot use `range` function for this
-        let mut board = HashShapeContainer::new();
-        for x in 0..N {
-            for y in 0..N {
-                board.insert(square::Coord::new(x as i32, y as i32), None);
-            }
-        }
-        TicTacToeState {
-            turns: 0,
-            // X always starts first.
-            player: TicTacToePlayer::X,
-            board,
-        }
+    fn start(&self) -> State {
+        State::new(self.config.size)
     }
 }
 
-/*
-impl<const N: usize> GridGame for TicTacToe<N> {
-    type GridCoord = Coord;
-}
-*/
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 #[test]
 fn test_tictactoe() {}

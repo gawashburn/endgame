@@ -8,7 +8,8 @@ use std::collections::HashMap;
 use std::f32::consts::{PI, TAU};
 use std::fmt::Display;
 use std::ops::Neg;
-//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -30,7 +31,7 @@ impl Display for Axes {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// For a hexagonal grid, it is possible to move in the same face directions
 /// from any coordinate.
@@ -266,7 +267,7 @@ impl std::ops::MulAssign<isize> for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl crate::Coord for Coord {
     type Axes = Axes;
@@ -376,7 +377,7 @@ impl crate::Coord for Coord {
         dir_type: DirectionType,
         dir: Direction,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         ModuleCoordIter {
             coord: *self,
             opt_offset: self.offset_in_direction(dir_type, dir),
@@ -385,7 +386,7 @@ impl crate::Coord for Coord {
         }
     }
 
-    fn path_iterator(&self, other: &Self) -> impl Iterator<Item = Self> {
+    fn path_iterator(&self, other: &Self) -> impl Iterator<Item=Self> {
         HexLineIter::new(
             self.to_cubical().as_vec3(),
             other.to_cubical().as_vec3(),
@@ -398,7 +399,7 @@ impl crate::Coord for Coord {
         axis: Axes,
         positive: bool,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         use Axes::*;
         use Direction::*;
         use DirectionType::*;
@@ -464,7 +465,7 @@ impl crate::Coord for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl ModuleCoord for Coord {
     fn offset_in_direction(&self, dir_type: DirectionType, dir: Direction) -> Option<Self> {
@@ -505,7 +506,7 @@ impl ModuleCoord for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone)]
 pub struct HexLineIter {
@@ -549,7 +550,7 @@ impl Iterator for HexLineIter {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Regular hexagonal grids with cells of specific size.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -622,7 +623,7 @@ impl crate::SizedGrid for SizedGrid {
         &self,
         min: Point,
         max: Point,
-    ) -> Option<impl Iterator<Item = Self::Coord>> {
+    ) -> Option<impl Iterator<Item=Self::Coord>> {
         if !min.cmple(max).all() {
             return None;
         };
@@ -635,13 +636,13 @@ impl crate::SizedGrid for SizedGrid {
             DirectionType::Face,
             Direction::SouthWest,
         )
-        .expect("Moving SouthEast should always be possible for a hexagonal grid.");
+            .expect("Moving SouthEast should always be possible for a hexagonal grid.");
         max_coord = <Coord as crate::Coord>::move_in_direction(
             &max_coord,
             DirectionType::Face,
             Direction::NorthEast,
         )
-        .expect("Moving NorthWest should always be possible for a hexagonal grid.");
+            .expect("Moving NorthWest should always be possible for a hexagonal grid.");
 
         Some(GridIterator {
             min: min,
@@ -656,7 +657,7 @@ impl crate::SizedGrid for SizedGrid {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct GridIterator {
     min: Vec2,
@@ -692,7 +693,7 @@ impl Iterator for GridIterator {
                 DirectionType::Face,
                 dir,
             )
-            .expect("Direction should be valid");
+                .expect("Direction should be valid");
             self.row_index += 1;
 
             if self.row_index == self.row_length {
@@ -701,7 +702,7 @@ impl Iterator for GridIterator {
                     DirectionType::Face,
                     Direction::North,
                 )
-                .expect("Direction should be valid");
+                    .expect("Direction should be valid");
                 self.row_index = 0;
                 self.current_coord = self.row_coord;
             }

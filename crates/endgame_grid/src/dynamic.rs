@@ -82,7 +82,7 @@ impl Display for Kind {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -190,7 +190,7 @@ impl From<triangle::Coord> for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -240,16 +240,16 @@ impl From<triangle::Axes> for Axes {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// CoordIterator allows for wrapping iterators over the different coordinate
 /// types so that they can be returned from those trait methods that return
 /// iterators without having to materialize the entire iterator.
 #[derive(Debug, Clone)]
 enum CoordIter<
-    S: Iterator<Item = square::Coord>,
-    H: Iterator<Item = hex::Coord>,
-    T: Iterator<Item = triangle::Coord>,
+    S: Iterator<Item=square::Coord>,
+    H: Iterator<Item=hex::Coord>,
+    T: Iterator<Item=triangle::Coord>,
 > {
     Square(S),
     Hex(H),
@@ -257,9 +257,9 @@ enum CoordIter<
 }
 
 impl<
-    S: Iterator<Item = square::Coord>,
-    H: Iterator<Item = hex::Coord>,
-    T: Iterator<Item = triangle::Coord>,
+    S: Iterator<Item=square::Coord>,
+    H: Iterator<Item=hex::Coord>,
+    T: Iterator<Item=triangle::Coord>,
 > Iterator for CoordIter<S, H, T>
 {
     type Item = Coord;
@@ -274,7 +274,7 @@ impl<
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl crate::Coord for Coord {
     type Axes = Axes;
@@ -348,7 +348,7 @@ impl crate::Coord for Coord {
         dir_type: DirectionType,
         dir: Direction,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         use Coord::*;
         match self {
             Square(coord) => CoordIter::Square(coord.direction_iterator(dir_type, dir, range)),
@@ -357,7 +357,7 @@ impl crate::Coord for Coord {
         }
     }
 
-    fn path_iterator(&self, other: &Self) -> impl Iterator<Item = Self> {
+    fn path_iterator(&self, other: &Self) -> impl Iterator<Item=Self> {
         use Coord::*;
         match (self, other) {
             (Square(a), Square(b)) => CoordIter::Square(a.path_iterator(b)),
@@ -376,7 +376,7 @@ impl crate::Coord for Coord {
         axis: Self::Axes,
         positive: bool,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         use Coord::*;
         match (self, axis) {
             (Square(coord), Axes::Square(axis)) => {
@@ -465,13 +465,13 @@ impl crate::Coord for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 // TODO Cannot implement a dynamic version of ModuleCoord, as it currently
 //   requires implementing the Default trait to produce the additive unit
 //   value.
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum SizedGrid {
@@ -598,7 +598,7 @@ impl crate::SizedGrid for SizedGrid {
         &self,
         min: crate::Point,
         max: crate::Point,
-    ) -> Option<impl Iterator<Item = Self::Coord>> {
+    ) -> Option<impl Iterator<Item=Self::Coord>> {
         use SizedGrid::*;
         match self {
             Square(grid) => grid.screen_rect_to_grid(min, max).map(CoordIter::Square),

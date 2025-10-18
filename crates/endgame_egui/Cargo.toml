@@ -7,6 +7,8 @@ repository = "https://github.com/gawashburn/endgame"
 edition = "2024"
 license = "MIT"
 
+[dev-dependencies]
+egui_kittest = "0.32"
 
 [dependencies]
 itertools = "0.14"
@@ -14,4 +16,4 @@ endgame_direction = { path = "../endgame_direction", version = "0.3" }
 endgame_grid = { path = "../endgame_grid", version = "0.2" }
 mint = "0.5"
 glam = { version = "0.30", features = ["serde", "mint"] }
-egui = { version = "0.32.1", features = ["serde", "mint"] }
+egui = { version = "0.32", features = ["serde", "mint"] }

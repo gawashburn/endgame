@@ -1,4 +1,6 @@
-use crate::{common, ExampleUi, GridDemo, GridExample};
+use crate::common;
+use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
 use egui::emath::RectTransform;
@@ -91,9 +93,9 @@ impl ExampleUi for Ui {
         &mut self,
         _ctx: &GridContext<dynamic::SizedGrid>,
         //demo: &GridDemo,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
+        dszg: &dynamic::SizedGrid,
+        transform: &RectTransform,
+        painter: &Painter,
     ) {
         /*
         common::unary_coordinates_select(
@@ -110,22 +112,22 @@ impl ExampleUi for Ui {
         };
 
         endgame_egui::render_coord_cell(
-            _dszg,
+            dszg,
             &coord,
             &common::SOURCE_CELL_SPEC,
             None::<&str>,
-            _transform,
-            _painter,
+            transform,
+            painter,
         );
 
         let dir = Direction::from_u8(self.direction);
         if !coord.allowed_direction(self.dir_type, dir) {
+            let pos = transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, dszg));
             endgame_egui::render_disallowed(
-                endgame_egui::coord_to_egui_pos2(&coord, _dszg),
-                _dszg.inradius() * 0.66,
+                endgame_egui::coord_to_egui_pos2(&coord, dszg),
+                dszg.inradius() * 0.66,
                 8.0 * (_ctx.szg.inradius() / 64.0),
-                _transform,
-                _painter,
+                painter,
             );
             return;
         }
@@ -134,13 +136,13 @@ impl ExampleUi for Ui {
         for coord in coord.direction_iterator(self.dir_type, dir, ..self.steps + 1) {
             if let Some(prev) = prev_coord {
                 render_hollow_arrow_coords(
-                    _dszg,
+                    dszg,
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    _transform,
-                    _painter,
+                    transform,
+                    painter,
                 );
             }
             prev_coord = Some(coord.clone());
@@ -148,12 +150,12 @@ impl ExampleUi for Ui {
 
         if let Some(last_coord) = prev_coord {
             endgame_egui::render_coord_cell(
-                _dszg,
+                dszg,
                 &last_coord,
                 &common::TARGET_CELL_SPEC,
                 None::<&str>,
-                _transform,
-                _painter,
+                transform,
+                painter,
             )
         }
     }

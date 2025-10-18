@@ -1,4 +1,5 @@
-use crate::{common, ExampleUi, GridDemo, GridExample};
+use crate::common;
+use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
 use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;

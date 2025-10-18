@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::fmt::Display;
-//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -29,7 +30,7 @@ impl Display for Axes {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
@@ -70,7 +71,7 @@ impl Display for TrianglePoint {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// This implementation of a triangular grid was influenced significantly by
 ///
@@ -247,7 +248,7 @@ impl Display for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl crate::Coord for Coord {
     type Axes = Axes;
@@ -381,7 +382,7 @@ impl crate::Coord for Coord {
         dir_type: DirectionType,
         dir: Direction,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         DirectionIter {
             current: self.clone(),
             dir_type,
@@ -391,7 +392,7 @@ impl crate::Coord for Coord {
         }
     }
 
-    fn path_iterator(&self, other: &Self) -> impl Iterator<Item = Self> {
+    fn path_iterator(&self, other: &Self) -> impl Iterator<Item=Self> {
         TrianglePathIter::new(self, other)
     }
 
@@ -400,7 +401,7 @@ impl crate::Coord for Coord {
         axis: Self::Axes,
         positive: bool,
         range: RB,
-    ) -> impl Iterator<Item = Self> {
+    ) -> impl Iterator<Item=Self> {
         TriangleAxisIter {
             current: *self,
             axis,
@@ -470,7 +471,7 @@ impl crate::Coord for Coord {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 pub struct DirectionIter<RB: AllowedCoordIterRange> {
     pub current: Coord,
@@ -501,14 +502,14 @@ impl<RB: AllowedCoordIterRange> Iterator for DirectionIter<RB> {
                         "Direction should have been validated before calling advance {} {}",
                         self.dir_type, self.dir
                     )
-                    .as_str(),
+                        .as_str(),
                 );
         self.dir_type = !self.dir_type;
         Some(result)
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Given that our triangular coordinate system cannot be treated as a linear
 /// space, we cannot use linear interpolation between two coordinates in the
@@ -583,7 +584,7 @@ impl Iterator for TrianglePathIter {
                     DirectionType::Face,
                     d,
                 )
-                .expect("Direction should be valid");
+                    .expect("Direction should be valid");
                 let new_frac =
                     <SizedGrid as crate::SizedGrid>::grid_to_screen(&self.sized_grid, &new_coord);
                 (new_coord, (frac_target_coord - new_frac).length())
@@ -602,7 +603,8 @@ impl Iterator for TrianglePathIter {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Debug, Clone)]
 pub struct TriangleAxisIter<RB: AllowedCoordIterRange> {
     pub current: Coord,
@@ -629,7 +631,7 @@ impl<RB: AllowedCoordIterRange> Iterator for TriangleAxisIter<RB> {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Regular triangular grids of a specific size.
 #[derive(PartialEq, Clone, Copy, Debug)]
@@ -686,7 +688,7 @@ impl crate::SizedGrid for SizedGrid {
             .map(|i| {
                 center
                     + Vec2::from_angle(start_angle + i as f32 * (2.0 * PI / 3.0))
-                        * self.circumradius()
+                    * self.circumradius()
             })
             .collect()
     }
@@ -740,7 +742,7 @@ impl crate::SizedGrid for SizedGrid {
         &self,
         min: Point,
         max: Point,
-    ) -> Option<impl Iterator<Item = Self::Coord>> {
+    ) -> Option<impl Iterator<Item=Self::Coord>> {
         if !min.cmple(max).all() {
             return None;
         };
@@ -764,7 +766,7 @@ impl crate::SizedGrid for SizedGrid {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 struct GridIterator {
     min: Point,
@@ -800,14 +802,14 @@ impl Iterator for GridIterator {
                         DirectionType::Vertex,
                         Direction::North,
                     )
-                    .expect("Direction should be valid")
+                        .expect("Direction should be valid")
                 } else {
                     <Coord as crate::Coord>::move_in_direction(
                         &self.row_coord,
                         DirectionType::Face,
                         Direction::North,
                     )
-                    .expect("Direction should be valid")
+                        .expect("Direction should be valid")
                 };
                 self.row_index = 0;
                 self.current_coord = self.row_coord;
