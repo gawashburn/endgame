@@ -15,7 +15,6 @@ resolver = "2"
 members = [
     "crates/*",
     "examples/grid_demo",
-    "examples/explorer_demo",
     "examples/games/*",
 ]
 
@@ -23,6 +22,6 @@ members = [
 endgame_direction = { path = "crates/endgame_direction", version = "0.3" }
 endgame_grid = { path = "crates/endgame_grid", version = "0.2" }
 endgame_egui = { path = "crates/endgame_egui", version = "0.2" }
-endgame_ludic = { path = "crates/endgame_ludic" }
+endgame_ludic = { path = "crates/endgame_ludic", version = "0.1" }
 grid_demo = { path = "examples/grid_demo" }
-explorer_demo = { path = "examples/explorer_demo" }
+
