@@ -61,7 +61,7 @@ jobs:
       - name: Upload Pages artifact (dist)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: examples/grid_demo
+          path: examples/grid_demo/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
