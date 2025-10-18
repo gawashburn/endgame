@@ -4,7 +4,7 @@ description = "A library for representing regular grids."
 authors = ["Geoffrey Washburn <geoff@washburght.org>"]
 repository = "https://github.com/gawashburn/endgame"
 license = "MIT"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 
 [dev-dependencies]

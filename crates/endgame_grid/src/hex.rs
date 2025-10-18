@@ -539,7 +539,7 @@ impl Iterator for HexLineIter {
         let t = self.index as f32 / self.steps as f32;
         self.index += 1;
 
-        // If the start and end are the same, we return the start.
+        // If the start and end are the same, we return the start coordinate.
         if self.steps == 0 {
             return Some(Coord::from_cubical(Coord::hex_round(self.start)));
         }

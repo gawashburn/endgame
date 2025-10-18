@@ -1,0 +1,10 @@
+[package]
+name = "rps"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ordered-float = "5.0"
+serde = { version = "1.0", features = ["derive"] }
+endgame_ludic = { path = "../../../crates/endgame_ludic", version = "0.1" }
+

@@ -13,7 +13,7 @@ use std::iter::Iterator;
 
 //////////////////////////////////////////////////////////////////////////////
 
-fn kind_strategy() -> impl Strategy<Value = dynamic::Kind> {
+fn kind_strategy() -> impl Strategy<Value=dynamic::Kind> {
     prop_oneof![
         Just(dynamic::Kind::Hex),
         Just(dynamic::Kind::Square),
@@ -25,7 +25,7 @@ fn kind_strategy() -> impl Strategy<Value = dynamic::Kind> {
 /// components.  This was added because apparently,
 /// just using a range does not guarantee that all small
 /// values like 0, 1, -1 will be explored.
-fn coord_strategy() -> impl Strategy<Value = i32> {
+fn coord_strategy() -> impl Strategy<Value=i32> {
     prop_oneof![
         -100000..100000,
         Just(0),
@@ -41,7 +41,7 @@ fn coord_strategy() -> impl Strategy<Value = i32> {
 /// A helper function to generate a strategy for smaller
 /// coordinate values.  This is useful when testing
 /// operations that are linear or worse in their runtime.
-fn small_coord_strategy() -> impl Strategy<Value = i32> {
+fn small_coord_strategy() -> impl Strategy<Value=i32> {
     prop_oneof![
         -1000..1000,
         Just(0),
@@ -54,33 +54,33 @@ fn small_coord_strategy() -> impl Strategy<Value = i32> {
     ]
 }
 
-fn ivec2_strategy() -> impl Strategy<Value = IVec2> {
+fn ivec2_strategy() -> impl Strategy<Value=IVec2> {
     // Use a restricted range to avoid issues with overflowing in tests.
     // TODO Investigate how other Rust libraries handle this?
     (coord_strategy(), coord_strategy()).prop_map(|(x, y)| IVec2::new(x, y))
 }
 
-fn hexcoord_strategy() -> impl Strategy<Value = hex::Coord> {
+fn hexcoord_strategy() -> impl Strategy<Value=hex::Coord> {
     ivec2_strategy().prop_map(|vec| hex::Coord::from_ivec2(vec))
 }
 
-fn small_hexcoord_strategy() -> impl Strategy<Value = hex::Coord> {
+fn small_hexcoord_strategy() -> impl Strategy<Value=hex::Coord> {
     // Use a restricted range to avoid issues with overflowing in tests.
     // TODO Investigate how other Rust libraries handle this?
     (small_coord_strategy(), small_coord_strategy()).prop_map(|(x, y)| hex::Coord::new(x, y))
 }
 
-fn squarecoord_strategy() -> impl Strategy<Value = square::Coord> {
+fn squarecoord_strategy() -> impl Strategy<Value=square::Coord> {
     ivec2_strategy().prop_map(|vec| square::Coord::from_ivec2(vec))
 }
 
-fn small_squarecoord_strategy() -> impl Strategy<Value = square::Coord> {
+fn small_squarecoord_strategy() -> impl Strategy<Value=square::Coord> {
     // Use a restricted range to avoid issues with overflowing in tests.
     // TODO Investigate how other Rust libraries handle this?
     (small_coord_strategy(), small_coord_strategy()).prop_map(|(x, y)| square::Coord::new(x, y))
 }
 
-fn trianglecoord_strategy() -> impl Strategy<Value = triangle::Coord> {
+fn trianglecoord_strategy() -> impl Strategy<Value=triangle::Coord> {
     // Use a restricted range to avoid issues with overflowing in tests.
     // TODO Investigate how other Rust libraries handle this?
     (
@@ -91,7 +91,7 @@ fn trianglecoord_strategy() -> impl Strategy<Value = triangle::Coord> {
         .prop_map(|(x, y, p)| triangle::Coord::new(x, y, p))
 }
 
-fn small_trianglecoord_strategy() -> impl Strategy<Value = triangle::Coord> {
+fn small_trianglecoord_strategy() -> impl Strategy<Value=triangle::Coord> {
     // Use a restricted range to avoid issues with overflowing in tests.
     // TODO Investigate how other Rust libraries handle this?
     (
@@ -102,7 +102,7 @@ fn small_trianglecoord_strategy() -> impl Strategy<Value = triangle::Coord> {
         .prop_map(|(x, y, p)| triangle::Coord::new(x, y, p))
 }
 
-fn dynamic_coord_strategy() -> impl Strategy<Value = dynamic::Coord> {
+fn dynamic_coord_strategy() -> impl Strategy<Value=dynamic::Coord> {
     prop_oneof![
         hexcoord_strategy().prop_map(dynamic::Coord::Hex),
         squarecoord_strategy().prop_map(dynamic::Coord::Square),
@@ -110,7 +110,7 @@ fn dynamic_coord_strategy() -> impl Strategy<Value = dynamic::Coord> {
     ]
 }
 
-fn small_dynamic_coord_strategy() -> impl Strategy<Value = dynamic::Coord> {
+fn small_dynamic_coord_strategy() -> impl Strategy<Value=dynamic::Coord> {
     prop_oneof![
         small_hexcoord_strategy().prop_map(dynamic::Coord::Hex),
         small_squarecoord_strategy().prop_map(dynamic::Coord::Square),
@@ -131,8 +131,8 @@ fn check_adjacent<C: Coord + Copy>(coord1: C, coord2: C) -> bool {
         .filter(|d| {
             coord1
                 == coord2
-                    .move_in_direction(DirectionType::Face, *d)
-                    .expect("Allowed direction should have an offset")
+                .move_in_direction(DirectionType::Face, *d)
+                .expect("Allowed direction should have an offset")
         })
         .count()
         == 1
@@ -142,8 +142,8 @@ fn check_adjacent<C: Coord + Copy>(coord1: C, coord2: C) -> bool {
 
 fn coord_neg<MC: ModuleCoord + Copy>(coord: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     let neg_coord = -coord;
     prop_assert_eq!(
@@ -161,8 +161,8 @@ where
 
 fn coord_add_ident<MC: ModuleCoord + Copy>(coord: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     let add_unit = MC::default();
     prop_assert_eq!(
@@ -183,15 +183,15 @@ where
         prop_assert_ne!(
             coord + coord,
             add_unit,
-            "Grid coordinates other than the additive identity should \
-            not be equal to the additive identity when added to themselves."
+            "Grid coordinates other than the additive identity should not be equal to the \
+             additive identity when added to themselves."
         );
 
         prop_assert_ne!(
             coord + coord,
             coord,
-            "Grid coordinates other than the additive identity should \
-            not be equal when added to themselves."
+            "Grid coordinates other than the additive identity should not be equal when added to \
+             themselves."
         );
     }
 
@@ -206,8 +206,8 @@ where
 
 fn coord_add_comm<MC: ModuleCoord + Copy>(coord1: MC, coord2: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         coord1 + coord2,
@@ -235,8 +235,8 @@ fn coord_add_assoc<MC: ModuleCoord + Copy>(
     coord3: MC,
 ) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         (coord1 + coord2) + coord3,
@@ -260,14 +260,15 @@ where
 
 fn coord_sub_unit<MC: ModuleCoord + Copy>(coord: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     let origin = MC::default();
     prop_assert_eq!(
         coord - origin,
         coord,
-        "Subtracting the additive identity from a grid coordinate should yield the same coordinate.",
+        "Subtracting the additive identity from a grid coordinate should yield the same \
+         coordinate.",
     );
 
     prop_assert_eq!(
@@ -290,8 +291,8 @@ where
 
 fn coord_sub_anticomm<MC: ModuleCoord + Copy>(coord1: MC, coord2: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         coord1 - coord2,
@@ -315,8 +316,8 @@ where
 
 fn coord_mul_unit<MC: ModuleCoord + Copy>(coord: MC) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     let origin = MC::default();
     prop_assert_eq!(
@@ -340,8 +341,8 @@ fn coord_mul_assoc<MC: ModuleCoord + Copy>(
     y: isize,
 ) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         coord * (x * y),
@@ -370,8 +371,8 @@ fn coord_mul_distributive_coord<MC: ModuleCoord + Copy>(
     x: isize,
 ) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         (coord1 + coord2) * x,
@@ -388,8 +389,8 @@ fn coord_mul_distributive_ring<MC: ModuleCoord + Copy>(
     y: isize,
 ) -> Result<(), TestCaseError>
 where
-    for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output = MC>,
-    for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output = MC>,
+        for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
+        for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
 {
     prop_assert_eq!(
         coord * (x + y),
@@ -416,8 +417,8 @@ fn grid_path<C: Coord + Copy>(coord1: C, coord2: C) -> Result<(), TestCaseError>
             );
             prop_assert!(
                 check_adjacent(prev_coord, coord),
-                "It should be possible to move from {prev_coord} to {coord} \
-                via exactly one allowed face direction."
+                "It should be possible to move from {prev_coord} to {coord} via exactly one \
+                 allowed face direction."
             );
         } else {
             prop_assert_eq!(
@@ -434,8 +435,8 @@ fn grid_path<C: Coord + Copy>(coord1: C, coord2: C) -> Result<(), TestCaseError>
     prop_assert_eq!(
         seen.len(),
         coord1.distance(&coord2) + 1,
-        "The number of coordinates in the line should match the distance \
-        between the coordinates (plus the initial coordinate)."
+        "The number of coordinates in the line should match the distance between the coordinates \
+         (plus the initial coordinate)."
     );
 
     Ok(())
@@ -469,7 +470,8 @@ fn grid_direction<C: Coord + Copy>(coord: C, dir_type: DirectionType) -> Result<
         let opt_returned_coord = moved_coord.move_in_direction(dir_type, back_dir);
         prop_assert!(
             opt_returned_coord.is_some(),
-            "Moving in direction {dir} from {coord} to {moved_coord} and then back should be allowed."
+            "Moving in direction {dir} from {coord} to {moved_coord} and then back should be \
+             allowed."
         );
         let returned_coord = opt_returned_coord.unwrap();
         prop_assert_eq!(
@@ -484,16 +486,16 @@ fn grid_direction<C: Coord + Copy>(coord: C, dir_type: DirectionType) -> Result<
         );
         prop_assert!(
             !seen_coords.contains(&moved_coord),
-            "Moving in direction {dir} from {coord} should yield a unique coordinate \
-            from all other allowed directions, but got duplicate {moved_coord}"
+            "Moving in direction {dir} from {coord} should yield a unique coordinate from all \
+             other allowed directions, but got duplicate {moved_coord}"
         );
         seen_coords.insert(moved_coord);
 
         let arrary_coord = moved_coord.grid_to_array_offset();
         prop_assert!(
             !seen_array_coords.contains(&arrary_coord),
-            "Moving in direction {dir} from {coord} should yield a unique array coordinate \
-            from all other allowed directions, but got duplicate array coordinate {:?}",
+            "Moving in direction {dir} from {coord} should yield a unique array coordinate from \
+             all other allowed directions, but got duplicate array coordinate {:?}",
             arrary_coord
         );
         seen_array_coords.insert(arrary_coord);
@@ -523,8 +525,7 @@ fn grid_color<C: Coord + Copy>(coord: C) -> Result<(), TestCaseError> {
         let adjacent_color = moved.to_color();
         assert_ne!(
             coord_color, adjacent_color,
-            "Adjacent coordinates should not have the same color: \
-                {} and {} are colored the same",
+            "Adjacent coordinates should not have the same color: {} and {} are colored the same",
             coord, moved
         );
     }
@@ -550,8 +551,8 @@ fn grid_rotation<C: Coord + Copy>(coord: C) -> Result<(), TestCaseError> {
         }
         prop_assert!(
             count < 100,
-            "Rotating clockwise should eventually return to the original \
-            coordinate.  Still iterating after 100 rotations."
+            "Rotating clockwise should eventually return to the original coordinate.  Still \
+             iterating after 100 rotations."
         );
     }
 
@@ -565,8 +566,8 @@ fn grid_rotation<C: Coord + Copy>(coord: C) -> Result<(), TestCaseError> {
         }
         prop_assert!(
             count < 100,
-            "Rotating counter-clockwise should eventually return to the \
-            original coordinate.  Still iterating after 100 rotations."
+            "Rotating counter-clockwise should eventually return to the original coordinate.  \
+             Still iterating after 100 rotations."
         );
     }
 
@@ -590,8 +591,8 @@ fn grid_reflection<C: Coord + Copy>(coord: C, axes: &[C::Axes]) -> Result<(), Te
                         .unwrap()
                         .reflect(*axis)
                         != coord),
-            "Reflecting across the {} axis should yield a different coordinate, \
-            or there will be an adjacent coordinate that is different itself when reflected.",
+            "Reflecting across the {} axis should yield a different coordinate, or there will be \
+             an adjacent coordinate that is different itself when reflected.",
             axis
         );
 
@@ -614,8 +615,8 @@ fn grid_reflection<C: Coord + Copy>(coord: C, axes: &[C::Axes]) -> Result<(), Te
         count += 1;
         prop_assert!(
             count < 100,
-            "Reflecting across all axes should eventually return to \
-            the original coordinate.  Still iterating after 100 reflections."
+            "Reflecting across all axes should eventually return to the original coordinate.  \
+             Still iterating after 100 reflections."
         );
     }
 
@@ -634,14 +635,15 @@ fn grid_angle_to_direction<C: Coord + Copy>(
         let direction = coord.angle_to_direction(dir_type, angle);
         prop_assert_eq!(direction, dir, "");
         // FIX??
-        //  "Direction {dir} should be returned for angle {angle} from coordinate {coord}");
+        //  "Direction {dir} should be returned for angle {angle} from
+        // coordinate {coord}");
     }
     for dir in &(Direction::VALUES.difference(coord.allowed_directions(dir_type))) {
         let direction = coord.direction_angle(dir_type, dir);
         prop_assert!(
             direction.is_none(),
-            "No direction should be returned for disallowed direction {dir} \
-            from coordinate {coord}"
+            "No direction should be returned for disallowed direction {dir} from coordinate \
+             {coord}"
         );
     }
 
@@ -679,8 +681,8 @@ fn grid_direction_iterator<C: Coord + Copy>(
             if let Some(dist) = distance {
                 prop_assert!(
                     new_distance > dist,
-                    "As we iterate in a direction, \
-                    we should get further away from the original coordinate."
+                    "As we iterate in a direction, we should get further away from the original \
+                     coordinate."
                 );
             }
             distance = Some(new_distance);
@@ -705,8 +707,8 @@ fn grid_direction_iterator<C: Coord + Copy>(
         let unbounded_iter = coord.direction_iterator(dir_type, dir, ..);
         prop_assert!(
             unbounded_iter.take(1).collect::<Vec<_>>().as_slice() == [coord],
-            "For inclusive range, first element of iterator for {dir_type} \
-            direction {dir} should be the coordinate itself."
+            "For inclusive range, first element of iterator for {dir_type} direction {dir} should \
+             be the coordinate itself."
         );
     }
 
@@ -719,8 +721,8 @@ fn grid_axis_iterator<C: Coord + Copy>(coord: C, axes: &[C::Axes]) -> Result<(),
             let axis_coord = coord.move_on_axis(*axis, sign);
             prop_assert!(
                 check_adjacent(coord, axis_coord),
-                "Moving on axis {} with sign {} should correspond to moving to \
-                exactly one adjacent coordinate.",
+                "Moving on axis {} with sign {} should correspond to moving to exactly one \
+                 adjacent coordinate.",
                 axis,
                 sign
             );
@@ -751,8 +753,8 @@ fn grid_axis_iterator<C: Coord + Copy>(coord: C, axes: &[C::Axes]) -> Result<(),
                 if let Some(dist) = distance {
                     prop_assert!(
                         new_distance > dist,
-                        "As we iterate along an axis, \
-                    we should get further away from the original coordinate."
+                        "As we iterate along an axis, we should get further away from the \
+                         original coordinate."
                     );
                 }
                 distance = Some(new_distance);
@@ -785,6 +787,11 @@ where
     SG::Coord: Copy,
 {
     let screen_coord = sized_grid.grid_to_screen(&coord);
+    prop_assert!(
+        sized_grid.coord_contains(&coord, screen_coord),
+        "Center of coordinate {coord} in screen space is not contained within the coordinate: \
+         {screen_coord}"
+    );
     let back_coord = sized_grid.screen_to_grid(screen_coord);
     prop_assert_eq!(coord, back_coord, "With screen coordinate {}", screen_coord);
     Ok(())
@@ -839,8 +846,8 @@ where
         prop_assert_eq!(
             coord,
             sized_grid.screen_to_grid(moved_back_coord),
-            "Moved from {} (screen {}) via {} direction (angle {}) to \
-                {} (screen {}) but got back to {} via {} (angle {}).",
+            "Moved from {} (screen {}) via {} direction (angle {}) to {} (screen {}) but got back \
+             to {} via {} (angle {}).",
             coord,
             screen_coord,
             dir,
@@ -884,7 +891,8 @@ fn sized_grid_vertices<SG: SizedGrid + Copy>(
                 // TODO allowing 2% error seems a bit high, but maybe that is the
                 // best we can expect with f32 and extreme grid sizes?
                 (diff / edge_vector_len) < 0.02,
-                "The length between the vertices does not match the expected length: {} vs {} diff {}",
+                "The length between the vertices does not match the expected length: {} vs {} \
+                 diff {}",
                 sized_grid.edge_length(),
                 edge_vector_len,
                 diff,
@@ -899,7 +907,8 @@ fn sized_grid_vertices<SG: SizedGrid + Copy>(
             .rem_euclid(2.0 * PI);
         prop_assert!(
             vertex_angle >= current_angle,
-            "Vertex angles are not in clockwise order: for vertex {index} of {coord}, {vertex_angle} < {current_angle}"
+            "Vertex angles are not in clockwise order: for vertex {index} of {coord}, \
+             {vertex_angle} < {current_angle}"
         );
         prev_vertex = Some(vertex.clone());
         current_angle = vertex_angle;
@@ -1123,4 +1132,38 @@ proptest! {
 #[test]
 fn triangle_point() {
     assert_ne!(TrianglePoint::Up, !TrianglePoint::Up);
+}
+
+#[test]
+fn test_color_try_from_usize_success() {
+    use endgame_grid::Color::*;
+    let cases = [(1, One), (2, Two), (3, Three), (4, Four)];
+    for (value, expected) in cases {
+        let got = endgame_grid::Color::try_from(value).expect("Expected Ok for value {value}");
+        assert_eq!(got, expected, "Color::try_from({value}) mismatch");
+    }
+}
+
+#[test]
+fn test_color_try_from_usize_failure() {
+    use endgame_grid::Color;
+    // A sampling of invalid inputs, including 0 and values greater than 4.
+    let cases = [0, 5, 6, 100];
+    for value in cases {
+        let err = Color::try_from(value).expect_err("Expected Err for value {value}");
+        assert!(
+            err.contains("1..=4") && err.contains(&value.to_string()),
+            "Error message should mention range and value. Got: {err}"
+        );
+    }
+}
+
+#[test]
+fn test_color_display() {
+    use endgame_grid::Color::*;
+    let cases = [(One, "One"), (Two, "Two"), (Three, "Three"), (Four, "Four")];
+    for (color, expected) in cases {
+        let s = format!("{color}");
+        assert_eq!(s, expected, "Display mismatch for {:?}", color);
+    }
 }

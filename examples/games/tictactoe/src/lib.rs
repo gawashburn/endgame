@@ -34,7 +34,7 @@ impl Display for Player {
     }
 }
 
-// TODO Create trait?
+// TODO Create trait for Player in endgame_ludic?
 impl Player {
     pub fn next(self) -> Self {
         use Player::*;
@@ -81,11 +81,10 @@ impl<'l> Iterator for MoveIterator<'l> {
 
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct State {
-    /// The size of game board.
+    /// The size of the game board.
     size: usize,
-    /// Keeping track of turns in the struct is not strictly necessary,
-    /// as we can extract that from the board.  But it makes things
-    /// simpler.
+    /// Keeping track of turns in the struct is not strictly necessary, as we can extract that
+    /// from the board.  But it simplifies some computations.
     turns: usize,
     /// The player making the next move.
     player: Player,
@@ -109,10 +108,12 @@ impl Display for State {
 }
 
 impl State {
+    /// Construct a new `State` for the given size game board.  The size must be at least 1.
     fn new(size: usize) -> Self {
-        // Minimum board size is 1.
-        assert!(size > 0);
-        // TODO Annoying that we cannot use `range` function for this
+        assert!(size > 0, "The board must not be zero sized.");
+
+        // TODO Annoying that we cannot use `range` function for this.  Look into adding
+        //   a shape creation function for this case.
         let mut board = HashShapeContainer::new();
         for x in 0..size {
             for y in 0..size {
@@ -122,13 +123,13 @@ impl State {
         Self {
             size,
             turns: 0,
-            // X always starts first.
+            // Player X always starts first.
             player: Player::X,
             board,
         }
     }
 
-    /// Check to see if the given player has a win.
+    /// Check to see if the given `Player` has won.
     fn winner(&self, player: Player) -> bool {
         let check_line = |x: usize, y: usize, dir_type: DirectionType, dir: Direction| {
             square::Coord::new(x as i32, y as i32)
@@ -168,7 +169,7 @@ impl game::State<Game> for State {
         // The game is over if one of the players won.
         self.winner(X) ||
             self.winner(O) ||
-            // If all positions are occupied the game is also over.
+            // If all positions are occupied, the game is also over.
             self.board.iter()
                 .filter(|(_, v)| v.is_none()).count() == 0
     }
@@ -197,7 +198,10 @@ impl game::State<Game> for State {
         let Some(m) = moves.get(&self.player) else {
             return None;
         };
-        // TODO Verify move is allowed.
+        // If the coordinate for this move is already occupied, return None.
+        if matches!(self.board.get(&m.0), Some(Some(_))) {
+            return None;
+        }
 
         let mut new_board = self.board.clone();
         let old_contents = new_board.insert(m.0, Some(self.player));
@@ -284,7 +288,3 @@ impl game::Game for Game {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-#[test]
-fn test_tictactoe() {}

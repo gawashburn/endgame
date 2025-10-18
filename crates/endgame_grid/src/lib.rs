@@ -443,7 +443,7 @@ where
     /// Are there no coordinates in this shape?
     fn is_empty(&self) -> bool;
 
-    /// TODO
+    /// Strip the contents and obtain the cooresponding `Shape`.
     fn as_shape(&self) -> impl Shape<C>;
 
     /// Obtain an iterator over coordinates and values in the `ShapeContainer`.

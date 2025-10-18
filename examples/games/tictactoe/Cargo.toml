@@ -11,5 +11,5 @@ ordered-float = "5.0"
 serde = { version = "1.0", features = ["derive"] }
 endgame_direction = { path = "../../../crates/endgame_direction", version = "0.4" }
 endgame_ludic = { path = "../../../crates/endgame_ludic", version = "0.1" }
-endgame_grid = { path = "../../../crates/endgame_grid", version = "0.2" }
+endgame_grid = { path = "../../../crates/endgame_grid", version = "0.3" }
 
