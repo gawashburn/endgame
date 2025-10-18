@@ -56,7 +56,7 @@ jobs:
 
       - name: Build grid_demo with trunk
         working-directory: examples/grid_demo
-        run: trunk build --release --no-sri --public-url ${{steps.deployment.outputs.page_url}}/examples/grid_demo
+        run: trunk build --release --no-sri --public-url https://gawashburn.github.io/endgame/
 
       - name: Upload Pages artifact (dist)
         uses: actions/upload-pages-artifact@v3
