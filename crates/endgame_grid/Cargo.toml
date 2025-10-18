@@ -11,7 +11,7 @@ edition = "2024"
 proptest = "1.0.0"
 
 [dependencies]
-endgame_direction = { path = "../endgame_direction", version = "0.3" }
+endgame_direction = { path = "../endgame_direction", version = "0.4" }
 glam = { version = "0.30", features = ["mint"] }
 serde = { version = "1.0", features = ["derive"], optional = true }
 lazy_static = "1.5.0"

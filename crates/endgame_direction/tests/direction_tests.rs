@@ -67,6 +67,11 @@ fn direction_containment() {
         *Direction::CARDINAL,
         "Removing the ordinal directions from all directions should yield the cardinal directions."
     );
+
+    assert_eq!(
+        *Direction::VALUES,
+        Direction::CARDINAL.union(Direction::ORDINAL),
+        "Union of the cardinal and ordinal directions should be the same as all directions.")
 }
 
 #[test]
@@ -317,5 +322,100 @@ fn test_direction_angles() {
             8.0 * f32::EPSILON
         );
         angle += PI / 4.0;
+    }
+}
+
+
+#[test]
+fn test_direction_short_name_mappings() {
+    use Direction::*;
+    let cases = [
+        (East, "E"),
+        (NorthEast, "NE"),
+        (North, "N"),
+        (NorthWest, "NW"),
+        (West, "W"),
+        (SouthWest, "SW"),
+        (South, "S"),
+        (SouthEast, "SE"),
+    ];
+    for (dir, expected) in cases {
+        assert_eq!(dir.short_name(), expected, "short_name mismatch for {dir}");
+    }
+}
+
+#[test]
+fn test_direction_parse_success() {
+    use Direction::*;
+
+    let success_cases: &[(&str, Direction)] = &[
+        // Single-letter cardinal abbreviations
+        ("e", East),
+        ("n", North),
+        ("w", West),
+        ("s", South),
+        // Two-letter ordinal abbreviations (mixed case)
+        ("ne", NorthEast),
+        ("NW", NorthWest),
+        ("Se", SouthEast),
+        ("sW", SouthWest),
+        // Full names
+        ("east", East),
+        ("north", North),
+        ("west", West),
+        ("south", South),
+        // Ordinals with separators 
+        ("north-east", NorthEast),
+        ("north_east", NorthEast),
+        ("south-west", SouthWest),
+        ("south_west", SouthWest),
+        ("south west", SouthWest),
+        ("north east", NorthEast),
+    ];
+
+    for (input, expected) in success_cases {
+        let parsed = Direction::parse(input);
+        assert_eq!(parsed, Some(*expected), "parse failed for input '{input}'.");
+    }
+}
+
+#[test]
+fn test_direction_parse_failure() {
+    // Choose inputs that should not match any direction according to current regexes
+    let failure_cases = [
+        // Empty and ASCII whitespace-only.
+        "",
+        " ",
+        "\t\t",
+        // Non-ASCII/Unicode whitespace-only (should trim to empty or not match)
+        "\u{00A0}", // NO-BREAK SPACE
+        "\u{2002}", // EN SPACE
+        "\u{2003}", // EM SPACE
+        "\u{2009}", // THIN SPACE
+        "\u{200B}", // ZERO WIDTH SPACE 
+        "\u{3000}", // IDEOGRAPHIC SPACE
+        // Clearly invalid strings.
+        "123",
+        "foo",
+        // Invalid separator usage with spaces around hyphen (ASCII and Unicode)
+        "east- west",         // ASCII space after hyphen is not allowed by the regex
+        "north-\u{00A0}east", // NBSP after hyphen should not match
+        "north\u{00A0}-east", // NBSP before hyphen should not match
+        // Zero width joiners/spaces inserted between words should not match
+        "north\u{200B}east",
+        "south\u{200B}west",
+        // Leading/trailing zero width space around otherwise valid tokens
+        "north-east\u{200B}",
+        "\u{200B}north-east",
+        // Double underscore
+        "north__east",
+        "-ne",
+        "se-",
+        "_sw",
+    ];
+
+    for input in failure_cases {
+        let parsed = Direction::parse(input);
+        assert!(parsed.is_none(), "Unexpected parse success for input '{input}': {:?}.", parsed);
     }
 }

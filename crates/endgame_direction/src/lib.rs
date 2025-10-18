@@ -10,7 +10,7 @@ use std::fmt::Display;
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// An enumeration of compass directions.  The traditional "cardinal" directions,
-/// along the "ordinal" ones as well.
+/// along with the "ordinal" ones as well.
 ///
 /// We use a counter-clockwise ordering starting at East, so that it aligns
 /// well with radian angles.
@@ -51,14 +51,14 @@ lazy_static::lazy_static! {
     /// A set of regular expressions for matching direction names.
     /// The order of the regexes corresponds to that of the `Direction` enum.
     static ref DIRECTION_REGEX_SET: RegexSet = RegexSet::new(&[
-        r"^e|east$",
-        r"^ne|north(\s*|-|_)east$",
-        r"^n|north$",
-        r"^nw|north(\s*|-|_)west$",
-        r"^w|west$",
-        r"^sw|south(\s*|-|_)west$",
-        r"^s|south$",
-        r"^se|south(\s*|-|_)east$",
+        r"^(e|east)$",
+        r"^(ne|north(\s*|-|_)east)$",
+        r"^(n|north)$",
+        r"^(nw|north(\s*|-|_)west)$",
+        r"^(w|west)$",
+        r"^(sw|south(\s*|-|_)west)$",
+        r"^(s|south)$",
+        r"^(se|south(\s*|-|_)east)$",
     ]).expect("Failed to compile Direction RegexSet.");
 }
 
@@ -79,7 +79,7 @@ impl Direction {
     // TODO Consider localization support?
     pub fn parse(s: &str) -> Option<Direction> {
         DIRECTION_REGEX_SET
-            .matches(s.to_lowercase().as_str())
+            .matches(s.trim().to_lowercase().as_str())
             .iter()
             .next()
             .and_then(|index| {
@@ -115,23 +115,6 @@ impl Direction {
         Direction::ORDINAL.0.bit_test(self as usize)
     }
 
-    /// Convert a `u8` value to a `Direction`.  Will panic if the value is
-    /// not in the range 0-7.
-    pub fn from_u8(value: u8) -> Direction {
-        use Direction::*;
-        match value {
-            0 => East,
-            1 => NorthEast,
-            2 => North,
-            3 => NorthWest,
-            4 => West,
-            5 => SouthWest,
-            6 => South,
-            7 => SouthEast,
-            _ => panic!("Invalid direction value: {value}"),
-        }
-    }
-
     /// Convert a `u8` value to an `Option<Direction>`.
     /// Returns `None` if the provided value is not in the range 0-7.
     pub fn from_u8_checked(value: u8) -> Option<Direction> {
@@ -149,6 +132,13 @@ impl Direction {
         };
         Some(dir)
     }
+
+    /// Convert a `u8` value to a `Direction`.  Will panic if the value is
+    /// not in the range 0-7.
+    pub fn from_u8(value: u8) -> Direction {
+        Self::from_u8_checked(value).unwrap_or_else(|| panic!("Invalid direction value: {value}"))
+    }
+
 
     /// Produce the `Direction` clockwise from this `Direction`.
     pub fn clockwise(self) -> Direction {
@@ -198,7 +188,7 @@ impl Display for DirectionSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{{")?;
         // TODO It seems like this should be a common enough
-        // case for there to be something in the standard library?
+        //   case for there to be something in the standard library?
         for (index, dir) in self.iter().enumerate() {
             if index != 0 {
                 write!(f, ", ")?;

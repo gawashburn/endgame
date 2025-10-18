@@ -7,7 +7,7 @@ edition = "2024"
 egui_kittest = "0.32"
 
 [dependencies]
-endgame_direction = { path = "../../crates/endgame_direction", version = "0.3" }
+endgame_direction = { path = "../../crates/endgame_direction", version = "0.4" }
 endgame_grid = { path = "../../crates/endgame_grid", version = "0.2" }
 endgame_egui = { path = "../../crates/endgame_egui", version = "0.2" }
 lazy_static = "1.5.0"
