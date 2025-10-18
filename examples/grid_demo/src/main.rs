@@ -65,7 +65,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::<GridDemo>::default())),
+                Box::new(|cc| Ok(Box::<grid_demo::GridDemo>::default())),
             )
             .await;
 
