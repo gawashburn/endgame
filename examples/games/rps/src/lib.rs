@@ -101,10 +101,13 @@ impl Hash for State {
 }
 
 impl State {
-    /// Create a new `State` with the given number of rounds.  The game must be at least one
-    /// round long.
+    /// Create a new `State` with the given number of rounds.  The game must be
+    /// at least one round long.
     pub fn new(rounds: usize) -> Self {
-        assert!(rounds > 0, "The game requires that at least one round be played.");
+        assert!(
+            rounds > 0,
+            "The game requires that at least one round be played."
+        );
 
         Self {
             rounds,
@@ -115,7 +118,9 @@ impl State {
 
     /// Helper for accessing the moves of the given player.
     fn player_moves(&self, player: Player) -> &Vec<Move> {
-        self.moves.get(&player).expect("All players should have entries.")
+        self.moves
+            .get(&player)
+            .expect("All players should have entries.")
     }
 
     /// Compute the number of wins for players A and B across the completed
@@ -142,7 +147,7 @@ impl State {
 
 impl game::State<Game> for State {
     fn current_players(&self) -> HashSet<Player> {
-        HashSet::from(ALL_PLAYERS)
+        if !self.is_over() { HashSet::from(ALL_PLAYERS) } else { HashSet::new() }
     }
 
     fn is_over(&self) -> bool {
@@ -166,7 +171,10 @@ impl game::State<Game> for State {
         let mut new_state = self.clone();
         let new_moves = &mut new_state.moves;
         for (player, m) in moves.clone() {
-            new_moves.get_mut(&player).expect("All players should have an entry").push(m);
+            new_moves
+                .get_mut(&player)
+                .expect("All players should have an entry")
+                .push(m);
         }
         new_state.turn += 1;
         Some(new_state)
@@ -187,6 +195,7 @@ impl game::State<Game> for State {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Config {
     /// The number of rounds to play.  Must be at least one.
+    // TODO Arguably we could allow zero rounds?  That could be treated as equivalent to a draw.
     pub rounds: usize,
 }
 
@@ -235,4 +244,3 @@ impl game::Game for Game {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-

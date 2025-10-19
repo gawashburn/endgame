@@ -14,8 +14,16 @@ use std::marker::PhantomData;
 pub trait Strategy<G: Game>: Debug {
     /// The type of additional per invocation state that can be supplied to an
     /// invocation of `choose` on a `Strategy`.
-    // TODO Better name?
-    type Config<'l>;
+    // TODO I am presently not happy with the design here.  The issue is that for
+    //   some Strategy implementations you would like the instance to be long-lived,
+    //   caching solutions, or otherwise accumulating information that could be applicable
+    //   as the game state evolves.  However, in some cases, we want to make use of inputs
+    //   that are not guaranteed to have lifetimes as long as the Strategy.  For example,
+    //   using pulling the move selection from a UI element.  I suspect this indicates that
+    //   using a Strategy is just not an optimal way to use the abstraction.  So I'll
+    //   iterate some more perhaps, eliminate the State argument in a future revision.
+    //   This would also open up the possiblity of making Strategy dyn compatible.
+    type State<'l>;
 
     /// Given a `State` of the `Game`, attempt to choose a valid move for the
     /// given `Player`. If the strategy cannot recommend a `Move`, `None`
@@ -26,8 +34,8 @@ pub trait Strategy<G: Game>: Debug {
     //   Perhaps consider contracts or secrust?
     fn choose<'l>(
         &mut self,
-        config: Self::Config<'l>,
-        state: &G::State,
+        strategy_state: &mut Self::State<'l>,
+        game_state: &G::State,
         player: &G::Player,
     ) -> Option<Option<G::Move>>;
 }
@@ -56,13 +64,13 @@ impl<G: Game> FailureStrategy<G> {
 }
 
 impl<G: Game> Strategy<G> for FailureStrategy<G> {
-    /// `FailureStrategy` requires no configuration information.
-    type Config<'l> = ();
+    /// `FailureStrategy` requires no state information.
+    type State<'l> = ();
 
     fn choose<'l>(
         &mut self,
-        _config: Self::Config<'l>,
-        _state: &G::State,
+        _strategy_state: &mut Self::State<'l>,
+        _game_state: &G::State,
         _player: &G::Player,
     ) -> Option<Option<G::Move>> {
         None
@@ -107,11 +115,11 @@ impl<G: Game> ConstantStrategy<G> {
 }
 
 impl<G: Game> Strategy<G> for ConstantStrategy<G> {
-    type Config<'l> = ();
+    type State<'l> = ();
     fn choose<'l>(
         &mut self,
-        _config: Self::Config<'l>,
-        state: &G::State,
+        _strategy_state: &mut Self::State<'l>,
+        game_state: &G::State,
         player: &G::Player,
     ) -> Option<Option<G::Move>> {
         let choice = self.map.get(&player).cloned();
@@ -119,7 +127,7 @@ impl<G: Game> Strategy<G> for ConstantStrategy<G> {
         // Verify that the choice is valid for this state.
         assert!(
             {
-                let moves: Vec<G::Move> = state.moves(player).collect();
+                let moves: Vec<G::Move> = game_state.moves(player).collect();
                 // No selected move.
                 choice.is_none()
                     // No moves available.
@@ -168,19 +176,19 @@ impl<G: Game, S1: Strategy<G>, S2: Strategy<G>> TryStrategy<G, S1, S2> {
 }
 
 impl<G: Game, S1: Strategy<G>, S2: Strategy<G>> Strategy<G> for TryStrategy<G, S1, S2> {
-    /// `TryStrategy` uses the combination of the configuration data from `S1`
+    /// `TryStrategy` uses the combination of the state data from `S1`
     /// and `S2`.
-    type Config<'l> = (S1::Config<'l>, S2::Config<'l>);
+    type State<'l> = (S1::State<'l>, S2::State<'l>);
 
     fn choose<'l>(
         &mut self,
-        config: Self::Config<'l>,
-        state: &G::State,
+        strategy_state: &mut Self::State<'l>,
+        game_state: &G::State,
         player: &G::Player,
     ) -> Option<Option<G::Move>> {
         self.initial
-            .choose(config.0, state, player)
-            .or_else(|| self.fallback.choose(config.1, state, player))
+            .choose(&mut strategy_state.0, game_state, player)
+            .or_else(|| self.fallback.choose(&mut strategy_state.1, game_state, player))
     }
 }
 
@@ -206,15 +214,15 @@ impl<G: Game> Debug for FirstMoveStrategy<G> {
 }
 
 impl<G: Game> Strategy<G> for FirstMoveStrategy<G> {
-    type Config<'l> = ();
+    type State<'l> = ();
 
     fn choose<'l>(
         &mut self,
-        _config: Self::Config<'l>,
-        state: &G::State,
+        _strategy_state: &mut Self::State<'l>,
+        game_state: &G::State,
         player: &G::Player,
     ) -> Option<Option<G::Move>> {
-        Some(state.moves(player).next())
+        Some(game_state.moves(player).next())
     }
 }
 
@@ -262,22 +270,22 @@ impl<G: Game> Default for RandomStrategy<G> {
 }
 
 impl<G: Game> Strategy<G> for RandomStrategy<G> {
-    type Config<'l> = ();
+    type State<'l> = ();
 
     fn choose<'l>(
         &mut self,
-        _config: Self::Config<'l>,
-        state: &G::State,
+        _strategy_state: &mut Self::State<'l>,
+        game_state: &G::State,
         player: &G::Player,
     ) -> Option<Option<G::Move>> {
         let mut hasher = DefaultHasher::new();
-        state.hash(&mut hasher);
+        game_state.hash(&mut hasher);
         // Use ChaCha random number generator for forward compatibility.
         let mut rng = ChaCha20Rng::seed_from_u64(self.seed + hasher.finish());
 
         // TODO Might be a more efficient option for sampling the moves,
         //   but ChaChaRng does not implement IteratorRandom.
-        let moves: Vec<G::Move> = state.moves(player).collect();
+        let moves: Vec<G::Move> = game_state.moves(player).collect();
         // No valid moves available.
         if moves.is_empty() {
             return Some(None);

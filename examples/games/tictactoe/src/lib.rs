@@ -83,8 +83,9 @@ impl<'l> Iterator for MoveIterator<'l> {
 pub struct State {
     /// The size of the game board.
     size: usize,
-    /// Keeping track of turns in the struct is not strictly necessary, as we can extract that
-    /// from the board.  But it simplifies some computations.
+    /// Keeping track of turns in the struct is not strictly necessary, as we
+    /// can extract that from the board.  But it simplifies some
+    /// computations.
     turns: usize,
     /// The player making the next move.
     player: Player,
@@ -108,7 +109,8 @@ impl Display for State {
 }
 
 impl State {
-    /// Construct a new `State` for the given size game board.  The size must be at least 1.
+    /// Construct a new `State` for the given size game board.  The size must be
+    /// at least 1.
     fn new(size: usize) -> Self {
         assert!(size > 0, "The board must not be zero sized.");
 
@@ -161,7 +163,7 @@ impl State {
 
 impl game::State<Game> for State {
     fn current_players(&self) -> HashSet<Player> {
-        HashSet::from([self.player])
+        if !self.is_over() { HashSet::from([self.player]) } else { HashSet::new() }
     }
 
     fn is_over(&self) -> bool {
@@ -206,7 +208,10 @@ impl game::State<Game> for State {
         let mut new_board = self.board.clone();
         let old_contents = new_board.insert(m.0, Some(self.player));
         assert!(old_contents.is_some(), "Square must be in the board");
-        assert!(old_contents.unwrap().is_none(), "Square is already occupied");
+        assert!(
+            old_contents.unwrap().is_none(),
+            "Square is already occupied"
+        );
         Some(State {
             size: self.size,
             turns: self.turns + 1,
@@ -274,7 +279,9 @@ impl game::Game for Game {
 
     fn new(config: &Self::Config) -> Self {
         assert!(config.size > 0);
-        Self { config: config.clone() }
+        Self {
+            config: config.clone(),
+        }
     }
 
     fn players(&self) -> HashSet<Player> {
