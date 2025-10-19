@@ -26,6 +26,10 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Create dist directory
+        run: |
+          mkdir ${{ runner.temp }}/dist
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -54,14 +58,18 @@ jobs:
         with:
           version: 'latest'
 
+      - name: Create grid_demo directory
+        run: |
+          mkdir ${{ runner.temp }}/dist/grid_demo
+
       - name: Build grid_demo with trunk
         working-directory: examples/grid_demo
-        run: trunk build --release --no-sri --public-url https://gawashburn.github.io/endgame/
+        run: trunk build --release --no-sri --public-url https://gawashburn.github.io/endgame/grid_demo --dist ${{ runner.temp }}/dist/grid_demo
 
       - name: Upload Pages artifact (dist)
         uses: actions/upload-pages-artifact@v3
         with:
-          path: examples/grid_demo/dist
+          path: ${{ runner.temp }}/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
