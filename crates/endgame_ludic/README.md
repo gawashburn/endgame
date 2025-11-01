@@ -6,7 +6,7 @@
 This somewhat redundantly named crate provides an abstraction for representing
 turn based games.
 
-Todo:
+## Future work
 
 * Extend `game::State` with an optional method for producing a set of game
   states along with isomorphisms between them and the current state. This would

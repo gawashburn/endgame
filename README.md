@@ -8,8 +8,8 @@ The Endgame library is a turn-based game engine, but not a Game Engine. There
 plenty of quality Game Engines out there for handling your graphics, audio,
 input, networking, and so forth. The Endgame library is instead an engine
 and a collection of tools for helping you build out and test your game
-mechanics.
-It could even be paired with a Game Engine to flesh out the rest of your game.
+mechanics. It could even be paired with a Game Engine to flesh out the
+rest of your game.
 
 The Endgame library was originally developed entirely in a private repository.
 However, to maintain a high bar for quality, as I open up the code, I am
@@ -18,9 +18,8 @@ testing. As such, only a few of the crates comprising the Endgame library are
 currently available. Given my available time, it may take months before I've
 worked my way through everything.
 
-At present the most complete crate is `endgame_grid`, which has
-a [web based demo](https://gawashburn.github.io/endgame_grid_demo/)
-available for experimentation.
+At present the most complete crates are `endgame_direction` and `endgame_grid`. The latter has
+a [web based demo](https://gawashburn.github.io/endgame_grid_demo/) available for experimentation.
 
 ## Table of contents
 
@@ -34,22 +33,27 @@ The endgame library consists of several crates, some of which are
 optional or can be used independently.
 
 - [`endgame`](README.md): The main crate, which provides the
-  complete
-  functionality of the Endgame library.
+  complete functionality of the Endgame library.
 - [`endgame_direction`](crates/endgame_direction/README.md): A crate for
   working with cardinal and ordinal directions.
 - [`endgame_grid`](crates/endgame_grid/README.md): A crate for working with
   grid systems. Currently, it has support for square, hexagonal, and triangular
-  grids.
-- [`endgame_egui`](crates/endgame_egui/README.md): The main crate, which
-  provides the
-  complete
+  grids. This would appear to be the most comprehensive Rust library for working with all three
+  kinds of grids using a common interface, perhaps in any language.
+- [`endgame_egui`](crates/endgame_egui/README.md): A crate that provides helpers and integration
+  with the `egui` GUI crate.
+- [`endgame_ludic`](crates/endgame_ludic/README.md): A crate that provides a high-level abstraction
+  for turn-based games.
 
 There are also a number of example crates that demonstrate how to use
-the endgamge library's functionality:
+the endgame library's functionality:
 
-- [`grid_demo`](examples/grid_demo/README.md): An egui application
-  demonstrating and exercising the `endgame_grid` crate.
+- [`grid_demo`](examples/grid_demo/README.md): An `eframe` application demonstrating and
+  exercising the `endgame_grid` crate.
+- [`tictactoe`](examples/games/tictactoe/README.md): An instantiation of the `endgame_ludic` for the
+  classic game Tic-Tac-Toe.
+- [`rps`](examples/games/rps/README.md): An instantiation of the `endgame_ludic` for the
+  classic game Rock, Paper, Scissors.
 
 ## Development
 
