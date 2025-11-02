@@ -1,10 +1,8 @@
-#![feature(hash_map_macro)]
-
 use egui::accesskit::Toggled;
 use egui_kittest::kittest::{NodeT, Queryable};
 use egui_kittest::Harness;
-// TODO Rename due to redundancy?
 use grid_demo::app::GridDemo;
+use std::collections::HashMap;
 
 #[test]
 fn test_demo() {
@@ -19,7 +17,7 @@ fn test_demo() {
 
     // Iterate through all grid kinds, then all examples that support the given kind.
     use endgame_grid::dynamic::Kind::*;
-    let kind_map = hash_map! { Square => "Square", Hex => "Hex", Triangle => "Triangle" };
+    let kind_map = HashMap::from([(Square, "Square"), (Hex, "Hex"), (Triangle, "Triangle")]);
     let examples = GridDemo::examples();
     for (kind, kind_label) in kind_map {
         // TODO Write helpers for interacting, running and then checking.
