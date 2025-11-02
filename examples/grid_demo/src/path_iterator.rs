@@ -1,11 +1,9 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
 
-use eframe::epaint::text::LayoutJob;
-use eframe::epaint::FontId;
-use egui::emath::RectTransform;
-use egui::{Color32, Painter};
-use endgame_egui::{render_arrow, render_hollow_arrow_coords, CellStyle, GridContext, SolidArrowStyle, Theme};
+use egui::Color32;
+use endgame_egui::{render_arrow, GridContext, SolidArrowStyle, Theme};
 use endgame_grid::{dynamic, Coord};
 use std::ops::Deref;
 
@@ -24,92 +22,38 @@ impl ExampleUi for Ui {
         "Path Iterator"
     }
 
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
-    fn controls(&mut self, _demo: &GridDemo, ui: &mut egui::Ui) {
-        let mut job = LayoutJob::single_section(
-            "Click on two grid cells to experiment with traversal paths \
-             between the coordinates.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+    fn controls(&mut self, _grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
+        common::wrapped_str(
+            ui,
+            "Click on two grid cells to experiment with traversal paths between the coordinates.\n",
         );
-        job.wrap = egui::text::TextWrapping::default();
 
-        ui.label(job);
-
-        let source_text = if let Some(coord) = self.source {
-            format!("Source coordinate: {}\n", coord)
-        } else {
-            "No source coordinate selected currently\n".to_owned()
-        };
-        let mut job = LayoutJob::single_section(
-            source_text,
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
-        ui.label(job);
-        let target_text = if let Some(coord) = self.target {
-            format!("Target coordinate: {}\n", coord)
-        } else {
-            "No target coordinate selected currently\n".to_owned()
-        };
-        let mut job = LayoutJob::single_section(
-            target_text,
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
-        ui.label(job);
+        common::binary_coordinates_labels(ui, "source", &self.source, "target", &self.target);
     }
 
-    fn render_overlay(
-        &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        //demo: &GridDemo,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
-    ) {
-        /*
-        common::binary_coordinates_select(
-            dszg,
-            demo.grid_kind,
-            &mut demo.clicks.borrow_mut(),
-            &mut self.source,
-            &mut self.target,
-        );
-*/
-        let Some(source) = self.source else {
-            return;
-        };
+    fn render_overlay(&mut self, ctx: &GridContext<dynamic::SizedGrid>) {
+        let grc = &ctx.grc;
 
-        endgame_egui::render_coord_cell(
-            _dszg,
-            &source,
-            &common::SOURCE_CELL_SPEC,
-            None::<&str>,
-            _transform,
-            _painter,
-        );
+        common::binary_coordinates_select(ctx, &mut self.source, &mut self.target);
 
-        let Some(target) = self.target else {
-            return;
-        };
+        let Some(source) = self.source else { return };
 
-        endgame_egui::render_coord_cell(
-            _dszg,
-            &target,
-            &common::TARGET_CELL_SPEC,
-            None::<&str>,
-            _transform,
-            _painter,
-        );
+        grc.render_coord_cell(&source, &common::SOURCE_CELL_SPEC, None::<&str>);
 
-        let source_screen =
-            _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&source, _dszg));
-        let target_screen =
-            _transform.transform_pos(endgame_egui::coord_to_egui_pos2(&target, _dszg));
+        let Some(target) = self.target else { return };
+
+        grc.render_coord_cell(&target, &common::TARGET_CELL_SPEC, None::<&str>);
+
+        let source_screen = grc
+            .transform
+            .transform_pos(endgame_egui::coord_to_egui_pos2(&source, &grc.szg));
+        let target_screen = grc
+            .transform
+            .transform_pos(endgame_egui::coord_to_egui_pos2(&target, &grc.szg));
 
         if source_screen != target_screen {
             let style = SolidArrowStyle {
@@ -119,19 +63,17 @@ impl ExampleUi for Ui {
                 from_head: false,
                 label: None,
             };
-            render_arrow(source_screen, target_screen, &style, None, _painter);
+            render_arrow(source_screen, target_screen, &style, None, &grc.painter);
         }
 
-        // If the source is just the target, we just render a single arrow.
+        // If the source is just the target, we just render a single self-arrow.
+        // TODO Can we just fold this into the loop by changing the base case?
         if source == target {
-            render_hollow_arrow_coords(
-                _dszg,
+            grc.render_hollow_arrow_coords(
                 &source,
                 &target,
                 common::HOLLOW_ARROW_STYLE.deref(),
                 None,
-                _transform,
-                _painter,
             );
             return;
         }
@@ -139,14 +81,11 @@ impl ExampleUi for Ui {
         let mut prev_coord = None;
         for coord in source.path_iterator(&target) {
             if let Some(prev) = prev_coord {
-                render_hollow_arrow_coords(
-                    _dszg,
+                grc.render_hollow_arrow_coords(
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    _transform,
-                    _painter,
                 );
             }
             prev_coord = Some(coord);

@@ -1,10 +1,7 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
-use eframe::epaint::text::LayoutJob;
-use eframe::epaint::FontId;
-use egui::emath::RectTransform;
-use egui::Painter;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, HollowArrowStyle, LabelStyle, Theme};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
+use endgame_egui::{GridContext, HollowArrowStyle, LabelStyle, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType};
 use std::ops::Deref;
 
@@ -23,55 +20,27 @@ impl ExampleUi for Ui {
         "Allowed Directions"
     }
 
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
-    fn controls(&mut self, _demo: &GridDemo, ui: &mut egui::Ui) {
-        let mut job = LayoutJob::single_section(
-            "Click on a grid cell to see the allowed traversal \
-            directions of the given type.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+    fn controls(&mut self, _grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
+        common::wrapped_str(
+            ui,
+            "Click on a grid cell to see the allowed traversal directions of the given type.\n",
         );
-        job.wrap = egui::text::TextWrapping::default();
 
-        ui.label(job);
-
-        let selection_text = if let Some(coord) = self.source {
-            format!("Selected coordinate: {}\n", coord)
-        } else {
-            "No coordinate selected currently\n".to_owned()
-        };
-        let mut job = LayoutJob::single_section(
-            selection_text,
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
-        ui.label(job);
+        common::unary_coordinate_label(ui, &self.source);
 
         common::direction_type_widget(ui, &mut self.dir_type);
     }
 
-    fn render_overlay(
-        &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
-    ) {
-        /*
-        common::unary_coordinates_select(
-            dszg,
-            demo.grid_kind,
-            &mut demo.clicks.borrow_mut(),
-            &mut self.source,
-        );
-*/
+    fn render_overlay(&mut self, ctx: &GridContext<dynamic::SizedGrid>) {
+        let grc = &ctx.grc;
 
-        let Some(coord) = self.source else {
-            return;
-        };
+        common::unary_coordinate_select(ctx, &mut self.source);
+
+        let Some(coord) = self.source else { return };
 
         let arrow_style = HollowArrowStyle {
             label: Some(LabelStyle {
@@ -84,14 +53,11 @@ impl ExampleUi for Ui {
 
         for dir in &coord.allowed_directions(self.dir_type) {
             if let Some(move_coord) = coord.move_in_direction(self.dir_type, dir) {
-                render_hollow_arrow_coords(
-                    _dszg,
+                grc.render_hollow_arrow_coords(
                     &coord,
                     &move_coord,
                     &arrow_style,
                     Some(dir.short_name()),
-                    _transform,
-                    _painter,
                 );
             }
         }

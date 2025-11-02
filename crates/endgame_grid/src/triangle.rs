@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::f32::consts::PI;
 use std::fmt::Display;
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -64,9 +63,20 @@ impl std::ops::Not for TrianglePoint {
 impl Display for TrianglePoint {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use TrianglePoint::*;
-        match self {
-            Up => write!(f, "∆"),
-            Down => write!(f, "∇"),
+        // TODO Is there a better option for parameterizing this?
+        // We provide an alternate using arrow glyphs, because for whatever reason the default
+        // egui font doesn't include the black/white upward/downward pointing triangles.
+        // It only has "medium" sized ones, yet does have full sized left/right triangles?
+        if f.alternate() {
+            match self {
+                Up => write!(f, "⏶"),
+                Down => write!(f, "⏷"),
+            }
+        } else {
+            match self {
+                Up => write!(f, "▲"),
+                Down => write!(f, "▼"),
+            }
         }
     }
 }
@@ -244,7 +254,11 @@ impl Default for Coord {
 
 impl Display for Coord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({},{},{})", self.0.x, self.0.y, self.1)
+        if f.alternate() {
+            write!(f, "({},{},{:#})", self.0.x, self.0.y, self.1)
+        } else {
+            write!(f, "({},{},{})", self.0.x, self.0.y, self.1)
+        }
     }
 }
 

@@ -14,9 +14,9 @@ mod path_iterator;
 mod reflection;
 mod rotation;
 mod shapes;
-mod grid_demo;
+mod app;
 
-//////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 use wasm_bindgen::prelude::*;
 
@@ -35,7 +35,7 @@ fn main() -> eframe::Result {
     eframe::run_native(
         "endgame library grid demo",
         native_options,
-        Box::new(|_| Ok(Box::<grid_demo::GridDemo>::default())),
+        Box::new(|_| Ok(Box::<app::GridDemo>::default())),
     )
 }
 
@@ -65,7 +65,7 @@ fn main() {
             .start(
                 canvas,
                 web_options,
-                Box::new(|cc| Ok(Box::<grid_demo::GridDemo>::default())),
+                Box::new(|cc| Ok(Box::<app::GridDemo>::default())),
             )
             .await;
 

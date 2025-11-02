@@ -1,9 +1,9 @@
 use crate::{Coord, ModuleCoord};
+use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,6 +77,16 @@ impl<C: Coord> std::ops::Sub<&HashShape<C>> for HashShape<C> {
     type Output = Self;
 
     fn sub(self, rhs: &Self) -> Self::Output {
+        HashShape {
+            set: self.set.difference(&rhs.set).cloned().collect(),
+        }
+    }
+}
+
+impl<'a, C: Coord> std::ops::Sub<HashShape<C>> for &'a HashShape<C> {
+    type Output = HashShape<C>;
+
+    fn sub(self, rhs: HashShape<C>) -> Self::Output {
         HashShape {
             set: self.set.difference(&rhs.set).cloned().collect(),
         }
@@ -194,6 +204,20 @@ where
     map: HashMap<C, V>,
 }
 
+impl<'a, 'b, C: Coord, V> std::ops::Sub<&'b HashShapeContainer<C, V>>
+for &'a HashShapeContainer<C, V>
+where
+    V: Debug + Clone + PartialEq + Eq + Hash,
+{
+    type Output = HashShapeContainer<C, V>;
+
+    fn sub(self, rhs: &'b HashShapeContainer<C, V>) -> Self::Output {
+        let mut map = self.map.clone();
+        map.retain(|c, _| !rhs.map.keys().contains(c));
+        HashShapeContainer { map }
+    }
+}
+
 impl<C: Coord, V> HashShapeContainer<C, V>
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
@@ -204,7 +228,15 @@ where
         }
     }
 
-    pub fn from_shape_value<S: crate::Shape<C>>(shape: S, v: V) -> Self {
+    pub fn from_shape_value<S: crate::Shape<C>>(shape: S, v: V) -> Self
+    where
+    // TODO Should this really be needed? Shouldn't it already be implied
+    //  by S satisfying crate::Shape<C>?
+        S: std::ops::Sub<Output=S>,
+        for<'a> S: std::ops::Sub<&'a S, Output=S>,
+        for<'b> S: std::ops::Sub<&'b S, Output=S>,
+        for<'a, 'b> &'a S: std::ops::Sub<&'b S, Output=S>,
+    {
         Self {
             map: shape.iter().cloned().zip(std::iter::repeat(v)).collect(),
         }
@@ -275,6 +307,8 @@ where
         C: 'a,
         V: 'a;
 
+    type Shape = HashShape<C>;
+
     fn contains(&self, coord: &C) -> bool {
         self.map.contains_key(coord)
     }
@@ -295,7 +329,7 @@ where
         self.map.is_empty()
     }
 
-    fn as_shape(&self) -> impl crate::Shape<C> {
+    fn as_shape(&self) -> Self::Shape {
         HashShape {
             set: self.map.keys().cloned().collect(),
         }

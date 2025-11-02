@@ -1,12 +1,9 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
 
-use eframe::epaint::text::LayoutJob;
-use eframe::epaint::FontId;
-use egui::emath::RectTransform;
-use egui::Painter;
 use endgame_direction::Direction;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, Theme};
+use endgame_egui::{GridContext, Theme};
 use endgame_grid::{dynamic, Coord, DirectionType, SizedGrid};
 use std::ops::Deref;
 
@@ -37,32 +34,18 @@ impl ExampleUi for Ui {
         "Direction Iterator"
     }
 
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
-    fn controls(&mut self, _demo: &GridDemo, ui: &mut egui::Ui) {
-        let mut job = LayoutJob::single_section(
-            "Click on a grid cell to experiment with traversals along \
-             the different directions from the selected coordinate.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+    fn controls(&mut self, _grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
+        common::wrapped_str(
+            ui,
+            "Click on a grid cell to experiment with traversals along the different directions \
+             from the selected coordinate.\n",
         );
-        job.wrap = egui::text::TextWrapping::default();
 
-        ui.label(job);
-
-        let selection_text = if let Some(coord) = self.source {
-            format!("Selected coordinate: {}\n", coord)
-        } else {
-            "No coordinate selected currently\n".to_owned()
-        };
-        let mut job = LayoutJob::single_section(
-            selection_text,
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
-        ui.label(job);
+        common::unary_coordinate_label(ui, &self.source);
 
         egui::Grid::new("direction_type")
             .num_columns(2)
@@ -77,57 +60,37 @@ impl ExampleUi for Ui {
         if let Some(coord) = self.source
             && !coord.allowed_direction(self.dir_type, dir)
         {
-            let mut job = LayoutJob::single_section(
+            common::wrapped_string(
+                ui,
                 format!(
-                    "This coordinate cannot move in the {dir} \
-                direction for the selected direction type."
+                    "This coordinate cannot move in the {dir} direction for the selected \
+                     direction type."
                 ),
-                egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-            );
-            job.wrap = egui::text::TextWrapping::default();
-            ui.label(job);
+            )
         }
     }
 
-    fn render_overlay(
-        &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        //demo: &GridDemo,
-        dszg: &dynamic::SizedGrid,
-        transform: &RectTransform,
-        painter: &Painter,
-    ) {
-        /*
-        common::unary_coordinates_select(
-            dszg,
-            demo.grid_kind,
-            &mut demo.clicks.borrow_mut(),
-            &mut self.source,
-        );
+    fn render_overlay(&mut self, ctx: &GridContext<dynamic::SizedGrid>) {
+        let grc = &ctx.grc;
 
-         */
+        common::unary_coordinate_select(ctx, &mut self.source);
 
         let Some(coord) = self.source else {
-            return;
+            return
         };
 
-        endgame_egui::render_coord_cell(
-            dszg,
-            &coord,
-            &common::SOURCE_CELL_SPEC,
-            None::<&str>,
-            transform,
-            painter,
-        );
+        grc.render_coord_cell(&coord, &common::SOURCE_CELL_SPEC, None::<&str>);
 
         let dir = Direction::from_u8(self.direction);
         if !coord.allowed_direction(self.dir_type, dir) {
-            let pos = transform.transform_pos(endgame_egui::coord_to_egui_pos2(&coord, dszg));
+            let pos = grc
+                .transform
+                .transform_pos(endgame_egui::coord_to_egui_pos2(&coord, &grc.szg));
             endgame_egui::render_disallowed(
-                endgame_egui::coord_to_egui_pos2(&coord, dszg),
-                dszg.inradius() * 0.66,
-                8.0 * (_ctx.szg.inradius() / 64.0),
-                painter,
+                pos,
+                grc.szg.inradius() * 0.66,
+                8.0 * (ctx.grc.szg.inradius() / 64.0),
+                &grc.painter,
             );
             return;
         }
@@ -135,28 +98,18 @@ impl ExampleUi for Ui {
         let mut prev_coord = None;
         for coord in coord.direction_iterator(self.dir_type, dir, ..self.steps + 1) {
             if let Some(prev) = prev_coord {
-                render_hollow_arrow_coords(
-                    dszg,
+                grc.render_hollow_arrow_coords(
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    transform,
-                    painter,
                 );
             }
             prev_coord = Some(coord.clone());
         }
 
         if let Some(last_coord) = prev_coord {
-            endgame_egui::render_coord_cell(
-                dszg,
-                &last_coord,
-                &common::TARGET_CELL_SPEC,
-                None::<&str>,
-                transform,
-                painter,
-            )
+            grc.render_coord_cell(&last_coord, &common::TARGET_CELL_SPEC, None::<&str>)
         }
     }
 }

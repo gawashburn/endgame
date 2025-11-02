@@ -1,12 +1,10 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
 
-use eframe::emath::RectTransform;
-use eframe::epaint::text::LayoutJob;
-use eframe::epaint::FontId;
 use egui::scroll_area::ScrollBarVisibility;
-use egui::{Color32, Painter, ScrollArea};
-use endgame_egui::{render_shape, CellBorderStyle, CellStyle, GridContext, Theme};
+use egui::{Color32, ScrollArea};
+use endgame_egui::{CellBorderStyle, CellStyle, GridContext, Theme};
 use endgame_grid::shape::HashShape;
 use endgame_grid::{dynamic, Shape};
 use std::collections::BTreeMap;
@@ -70,21 +68,16 @@ impl ExampleUi for Ui {
         "Shapes"
     }
 
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
-    fn controls(&mut self, _demo: &GridDemo, ui: &mut egui::Ui) {
-        let mut job = LayoutJob::single_section(
-            "Experiment with constructing grid shapes.  The currently active \
-            shapes will be combined or subtracted in order to construct a new \
-            shape.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+    fn controls(&mut self, _grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
+        common::wrapped_str(
+            ui,
+            "Experiment with constructing grid shapes.  The currently active shapes will be \
+             combined or subtracted in order to construct a new shape.\n",
         );
-        job.wrap = egui::text::TextWrapping::default();
-
-        ui.label(job);
 
         if ui.button("Add Shape").clicked() {
             let next_num = self.shapes.keys().max().map_or(0, |n| n + 1);
@@ -136,44 +129,38 @@ impl ExampleUi for Ui {
         }
     }
 
-    fn render_overlay(
-        &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        //demo: &GridDemo,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
-    ) {
+    fn render_overlay(&mut self, ctx: &GridContext<dynamic::SizedGrid>) {
+        let grc = &ctx.grc;
         let base_style = CellStyle {
-            border: CellBorderStyle::uniform(4.0,
-                                             Color32::from_rgba_unmultiplied(252, 182, 5, 192)),
+            border: CellBorderStyle::uniform(
+                4.0,
+                Color32::from_rgba_unmultiplied(252, 182, 5, 192),
+            ),
             ..common::SOURCE_CELL_SPEC.clone()
         };
 
         let mut opt_shape = None::<HashShape<dynamic::Coord>>;
 
-        let grid_kind = _dszg.kind();
+        let grid_kind = grc.szg.kind();
         for instance in self.shapes.values() {
             let shape = match instance.choice {
                 ShapeChoice::Ring => dynamic::Coord::ring(grid_kind, instance.size),
                 ShapeChoice::Range => dynamic::Coord::range(grid_kind, instance.size),
             };
 
-            match opt_shape {
+            let _ = opt_shape.insert(match &opt_shape {
                 Some(existing_shape) => {
                     if instance.subtractive {
-                        opt_shape = Some(existing_shape - shape);
+                        existing_shape - shape
                     } else {
-                        opt_shape = Some(existing_shape.union(&shape));
+                        existing_shape.union(&shape)
                     }
                 }
-                None => {
-                    opt_shape = Some(shape);
-                }
-            }
+                None => shape,
+            });
         }
 
         let Some(shape) = opt_shape else { return };
-        render_shape(_dszg, &shape, &base_style, None, _transform, _painter);
+        grc.render_shape(&shape, &base_style, None);
     }
 }

@@ -1,11 +1,8 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+use crate::common::GridExample;
+use crate::common::{wrapped_string, ExampleUi};
 
-use eframe::emath::RectTransform;
-use eframe::epaint::text::LayoutJob;
-use eframe::epaint::FontId;
-use egui::Painter;
-use endgame_egui::{render_hollow_arrow_coords, CellStyle, GridContext, Theme};
+use endgame_egui::{GridContext, Theme};
 use endgame_grid::dynamic;
 use std::ops::Deref;
 
@@ -13,6 +10,17 @@ use std::ops::Deref;
 pub struct Ui {
     value: isize,
     coord1: Option<dynamic::Coord>,
+}
+
+impl Ui {
+    fn multiply(&self) -> Option<dynamic::Coord> {
+        // TODO Can we extend dynamic to support ModuleCoord?
+        self.coord1.map(|c| match c {
+            dynamic::Coord::Square(c) => (c * self.value).into(),
+            dynamic::Coord::Hex(c) => (c * self.value).into(),
+            _ => unreachable!("Unexpected coordinate kind {}", c.kind()),
+        })
+    }
 }
 
 impl ExampleUi for Ui {
@@ -24,104 +32,52 @@ impl ExampleUi for Ui {
         "Module Multiplication"
     }
 
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
     fn supports_grid_kind(&self, kind: dynamic::Kind) -> bool {
         kind != dynamic::Kind::Triangle
     }
 
-    fn controls(&mut self, _demo: &GridDemo, ui: &mut egui::Ui) {
-        let mut job = LayoutJob::single_section(
-            "Click on a grid cell to experiment with scalar multiplication \
-            of coordinates.  Note, that as triangular coordinates \
-            do not satisfy the requirements to be an algebraic module, \
-            they do not support multiplication.\n"
-                .to_owned(),
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
+    fn controls(&mut self, _grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
+        common::wrapped_str(
+            ui,
+            "Click on a grid cell to experiment with scalar multiplication of coordinates.  Note, \
+             that as triangular coordinates do not satisfy the requirements to be an algebraic \
+             module, they do not support multiplication.\n",
         );
-        job.wrap = egui::text::TextWrapping::default();
 
-        ui.label(job);
-
-        let selection_text = if let Some(coord) = self.coord1 {
-            format!("Selected coordinate: {}\n", coord)
-        } else {
-            "No coordinate selected currently\n".to_owned()
-        };
-        let mut job = LayoutJob::single_section(
-            selection_text,
-            egui::TextFormat::simple(FontId::default(), ui.visuals().text_color()),
-        );
-        job.wrap = egui::text::TextWrapping::default();
-        ui.label(job);
+        common::unary_coordinate_label(ui, &self.coord1);
 
         ui.add(egui::Slider::new(&mut self.value, 0..=8).text("Multiplier"));
+
+        if let Some(product) = self.multiply() {
+            wrapped_string(ui, format!("Product coordinate: {product}\n"));
+        }
     }
 
-    fn render_overlay(
-        &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        //demo: &GridDemo,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
-    ) {
-        /*
+    fn render_overlay(&mut self, ctx: &GridContext<dynamic::SizedGrid>) {
+        let grc = &ctx.grc;
+
         // No-op if the grid kind does not support ModuleCoord.
-        // Also reset the selected coordinates.
-        if !demo.grid_kind.is_modular() {
+        // Also, reset the selected coordinates.
+        if !grc.szg.kind().is_modular() {
             self.coord1 = None;
             return;
         }
 
-        common::unary_coordinates_select(
-            dszg,
-            demo.grid_kind,
-            &mut demo.clicks.borrow_mut(),
-            &mut self.coord1,
-        );
-        
-         */
+        common::unary_coordinate_select(ctx, &mut self.coord1);
 
-        let Some(coord1) = self.coord1 else {
+        let Some(coord1) = self.coord1 else { return };
+
+        grc.render_coord_cell(&coord1, &common::SOURCE_CELL_SPEC, None::<&str>);
+
+        let Some(coord2) = self.multiply() else {
             return;
         };
 
-        endgame_egui::render_coord_cell(
-            _dszg,
-            &coord1,
-            &common::SOURCE_CELL_SPEC,
-            None::<&str>,
-            _transform,
-            _painter,
-        );
-
-        // TODO Can we extend dynamic to support ModuleCoord?
-        let coord2: dynamic::Coord = match coord1 {
-            dynamic::Coord::Square(c) => (c * self.value).into(),
-            dynamic::Coord::Hex(c) => (c * self.value).into(),
-            _ => unreachable!("Unexpected coordinate kind {}", coord1.kind()),
-        };
-
-        endgame_egui::render_coord_cell(
-            _dszg,
-            &coord2,
-            &common::TARGET_CELL_SPEC,
-            None::<&str>,
-            _transform,
-            _painter,
-        );
-
-        render_hollow_arrow_coords(
-            _dszg,
-            &coord1,
-            &coord2,
-            common::HOLLOW_ARROW_STYLE.deref(),
-            None,
-            _transform,
-            _painter,
-        );
+        grc.render_coord_cell(&coord2, &common::TARGET_CELL_SPEC, None::<&str>);
+        grc.render_hollow_arrow_coords(&coord1, &coord2, common::HOLLOW_ARROW_STYLE.deref(), None);
     }
 }

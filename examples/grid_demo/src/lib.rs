@@ -14,4 +14,4 @@ pub mod path_iterator;
 pub mod reflection;
 pub mod rotation;
 pub mod shapes;
-pub mod grid_demo;
+pub mod app;

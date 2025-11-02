@@ -1,12 +1,13 @@
 use crate::common;
-use crate::grid_demo::{ExampleUi, GridDemo, GridExample};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
 
-use eframe::emath::RectTransform;
 use eframe::epaint::text::LayoutJob;
 use eframe::epaint::FontId;
-use egui::Painter;
-use endgame_egui::{CellStyle, GridContext, Theme};
+use egui::Pos2;
+use endgame_egui::{egui_pos2_to_glam_vec2, CellBorderStyle, CellStyle, GridContext, Theme};
 use endgame_grid::{dynamic, Coord, SizedGrid};
+use std::ops::Deref;
 
 pub struct Ui {
     axis: Option<dynamic::Axes>,
@@ -34,11 +35,11 @@ impl ExampleUi for Ui {
     fn label(&self) -> &'static str {
         "Axis Iterator"
     }
-    fn cell_theme(&self, coord: &dynamic::Coord, dark_mode: bool) -> CellStyle {
-        Theme::GraphPaper.cell_style(coord, dark_mode)
+    fn cell_theme(&self) -> Theme {
+        Theme::GraphPaper
     }
 
-    fn controls(&mut self, demo: &GridDemo, ui: &mut egui::Ui) {
+    fn controls(&mut self, grid_kind: dynamic::Kind, ui: &mut egui::Ui) {
         let mut job = LayoutJob::single_section(
             "Click on a grid cell to experiment with traversals along \
              the different grid axes from the selected coordinate.\n\n\
@@ -63,7 +64,7 @@ impl ExampleUi for Ui {
         job.wrap = egui::text::TextWrapping::default();
         ui.label(job);
 
-        common::axis_widget(ui, &mut self.axis, demo.grid_kind);
+        common::axis_widget(ui, &mut self.axis, grid_kind);
 
         ui.checkbox(&mut self.positive, "Positive axis direction");
         ui.add(egui::Slider::new(&mut self.steps, 1..=16).text("Steps"));
@@ -71,22 +72,17 @@ impl ExampleUi for Ui {
 
     fn render_overlay(
         &mut self,
-        _ctx: &GridContext<dynamic::SizedGrid>,
-        //demo: &GridDemo,
-        _dszg: &dynamic::SizedGrid,
-        _transform: &RectTransform,
-        _painter: &Painter,
+        ctx: &GridContext<dynamic::SizedGrid>,
     ) {
-        /*
-        common::unary_coordinates_select(
-            dszg,
-            demo.grid_kind,
-            &mut demo.clicks.borrow_mut(),
+        let grc = &ctx.grc;
+
+        common::unary_coordinate_select(
+            ctx,
             &mut self.source,
         );
 
         let Some(coord) = self.source else {
-            return;
+            return
         };
 
         let base_style = CellStyle {
@@ -95,30 +91,30 @@ impl ExampleUi for Ui {
             label: None,
         };
 
-        let grid_offset = demo.offset.unwrap().to_vec2();
-        let min = egui_pos2_to_glam_vec2(painter.clip_rect().min + grid_offset);
-        let max = egui_pos2_to_glam_vec2(painter.clip_rect().max + grid_offset);
+        let clip_rect = grc.painter.clip_rect();
 
-        for (&axis, color) in demo.grid_kind.axes().iter().zip(common::AXES_COLORS.iter()) {
+        let grid_offset = grc.panning_offset.to_vec2();
+        let min = egui_pos2_to_glam_vec2(grid_offset.to_pos2());
+        let view_max = Pos2::new(clip_rect.width(), clip_rect.max.y);
+        let max = egui_pos2_to_glam_vec2(view_max + grid_offset);
+
+        for (&axis, color) in grc.szg.kind().axes().iter().zip(common::AXES_COLORS.into_iter()) {
             for pos_neg in [true, false] {
                 // Skip first coordinate so we do not overdraw the source cell
                 // to the point that it is opaque.
-                for coord in coord.axis_iterator(axis, pos_neg, ..).skip(1) {
+                for c in coord.axis_iterator(axis, pos_neg, ..).skip(1) {
                     // TODO Doesn't work in the case that coord is not within the clipping rect.
                     //   Need to do a ray-rectangle intersection test for the axis.
-                    if !dszg.coord_intersects_rect(&coord, min, max) {
+                    if !grc.szg.coord_intersects_rect(&c, min, max) {
                         break;
                     }
-                    endgame_egui::render_coord_cell(
-                        dszg,
-                        &coord,
+                    grc.render_coord_cell(
+                        &c,
                         &CellStyle {
                             fill_color: Some(color.linear_multiply(0.33)),
                             ..base_style.clone()
                         },
                         None::<&str>,
-                        transform,
-                        painter,
                     );
                 }
             }
@@ -131,18 +127,14 @@ impl ExampleUi for Ui {
             ..self.steps + 1,
         ) {
             if let Some(prev) = prev_coord {
-                render_hollow_arrow_coords(
-                    dszg,
+                grc.render_hollow_arrow_coords(
                     &prev,
                     &coord,
                     common::HOLLOW_ARROW_STYLE.deref(),
                     None,
-                    transform,
-                    painter,
                 );
             }
             prev_coord = Some(coord.clone());
         }
-         */
     }
 }

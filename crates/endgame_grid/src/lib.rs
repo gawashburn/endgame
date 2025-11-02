@@ -48,7 +48,7 @@ impl std::ops::Not for DirectionType {
 /// proves that for any loopless planar graph no more colors are needed to
 /// color adjacent nodes so that no two adjacent nodes have the same color.  
 /// So as long as the coordinate system is isomorphic to a loopless planar
-/// graph, we can use just four colors provide a suitable coloring  for a grid.  
+/// graph, we can use just four colors provide a suitable coloring  for a grid.
 /// Should this library expand beyond such coordinate systems, this design
 /// choice will need to be revisited.
 #[repr(u8)]
@@ -200,8 +200,8 @@ pub trait Coord: PartialEq + Eq + Clone + Hash + Debug + Display + Sync + Send {
     fn rotate_counterclockwise(&self) -> Self;
 
     /// Rotate the coordinate around the origin by the given number of steps.
-    /// Positive steps rotate clockwise, negative steps rotate counter-clockwise.
-    /// Zero steps is a no-op.
+    /// Positive steps rotate clockwise, negative steps rotate
+    /// counter-clockwise. Zero steps is a no-op.
     fn rotate(&self, steps: isize) -> Self {
         let mut result = self.clone();
         if steps > 0 {
@@ -348,9 +348,12 @@ pub trait SizedGrid {
 
 /// An abstraction for representing finite portions of an infinite grid plane.
 pub trait Shape<C: Coord>:
-Debug + Clone + PartialEq + Eq + Hash + IntoIterator + std::ops::Sub<Output=Self>
+Debug + Clone + PartialEq + Eq + Hash + IntoIterator
 where
-        for<'a> Self: std::ops::Sub<&'a Self, Output=Self>,
+    Self: std::ops::Sub<Output=Self>,
+    for<'a> Self: std::ops::Sub<&'a Self, Output=Self>,
+    for<'b> Self: std::ops::Sub<&'b Self, Output=Self>,
+    for<'a, 'b> &'a Self: std::ops::Sub<&'b Self, Output=Self>,
 {
     type Iterator<'a>: ShapeIterator<'a, C>
     where
@@ -400,6 +403,7 @@ pub trait ModuleShape<MC: ModuleCoord>: Shape<MC>
 where
         for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
         for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
+        for<'a, 'b> &'a Self: std::ops::Sub<&'b Self, Output=Self>,
 {
     /// Translate the shape by the given coordinate offset.
     fn translate(&self, offset: &MC) -> Self;
@@ -413,12 +417,18 @@ pub trait ShapeContainer<C: Coord, V>:
 Debug + Clone + PartialEq + Eq + Hash + IntoIterator
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
+    Self::Shape: std::ops::Sub<Output=Self::Shape>,
+    for<'a> Self::Shape: std::ops::Sub<&'a Self::Shape, Output=Self::Shape>,
+    for<'b> Self::Shape: std::ops::Sub<&'b Self::Shape, Output=Self::Shape>,
+    for<'a, 'b> &'a Self::Shape: std::ops::Sub<&'b Self::Shape, Output=Self::Shape>,
 {
     type Iterator<'a>: ShapeContainerIterator<'a, C, V>
     where
         Self: 'a,
         C: 'a,
         V: 'a;
+
+    type Shape: Shape<C>;
 
     /// Checks whether the given grid coordinate is contained within the
     /// bounds `Shape`.  This is relatively generic as it allows for
@@ -444,7 +454,7 @@ where
     fn is_empty(&self) -> bool;
 
     /// Strip the contents and obtain the cooresponding `Shape`.
-    fn as_shape(&self) -> impl Shape<C>;
+    fn as_shape(&self) -> Self::Shape;
 
     /// Obtain an iterator over coordinates and values in the `ShapeContainer`.
     fn iter<'a>(&'a self) -> Self::Iterator<'a>
@@ -452,20 +462,25 @@ where
         C: 'a,
         V: 'a;
 }
-/// A trait for iterators over coordinates and their values in a `ShapeContainer`.
+/// A trait for iterators over coordinates and their values in a
+/// `ShapeContainer`.
 pub trait ShapeContainerIterator<'a, C: Coord + 'a, V: 'a>:
 Iterator<Item=(&'a C, &'a V)>
 {}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// As specialization of `ShapeContainer` for those coordinate systems that satisfy
-/// ModuleCoord and thus support translation.
+/// As specialization of `ShapeContainer` for those coordinate systems that
+/// satisfy ModuleCoord and thus support translation.
 pub trait ModuleShapeContainer<MC: ModuleCoord, V>: ShapeContainer<MC, V>
 where
     V: Debug + Clone + PartialEq + Eq + Hash,
     for<'a, 'b> &'a MC: std::ops::Add<&'b MC, Output=MC>,
     for<'a, 'b> &'a MC: std::ops::Sub<&'b MC, Output=MC>,
+    Self::Shape: std::ops::Sub<Output=Self::Shape>,
+    for<'a> Self::Shape: std::ops::Sub<&'a Self::Shape, Output=Self::Shape>,
+    for<'b> Self::Shape: std::ops::Sub<&'b Self::Shape, Output=Self::Shape>,
+    for<'a, 'b> &'a Self::Shape: std::ops::Sub<&'b Self::Shape, Output=Self::Shape>,
 {
     /// Translate the shape by the given coordinate offset.
     fn translate(&self, offset: &MC) -> Self;

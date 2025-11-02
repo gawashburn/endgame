@@ -4,7 +4,7 @@ use egui::accesskit::Toggled;
 use egui_kittest::kittest::{NodeT, Queryable};
 use egui_kittest::Harness;
 // TODO Rename due to redundancy?
-use grid_demo::grid_demo::GridDemo;
+use grid_demo::app::GridDemo;
 
 #[test]
 fn test_demo() {
@@ -17,6 +17,7 @@ fn test_demo() {
 
     harness.run();
 
+    // Iterate through all grid kinds, then all examples that support the given kind.
     use endgame_grid::dynamic::Kind::*;
     let kind_map = hash_map! { Square => "Square", Hex => "Hex", Triangle => "Triangle" };
     let examples = GridDemo::examples();
@@ -53,9 +54,19 @@ fn test_demo() {
                     example_radio.accesskit_node().toggled(),
                     Some(Toggled::True)
                 );
-                // TODO Add testing around interacting with displayed grid.
-                //let grid_view = harness.get_by_label("central_panel");
+                // TODO Is there a better way to access the central panel?
+                let view = harness.root().children().last().unwrap();
+                // TODO Cannot click in other locations currently.
+                view.click();
             }
+            harness.run();
+            {
+                let view = harness.root().children().last().unwrap();
+                view.click();
+            }
+            harness.run();
+
+            // TODO More example specific testing.
         }
     }
 }

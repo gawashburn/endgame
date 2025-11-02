@@ -1,4 +1,5 @@
-use crate::grid_demo::{ExampleUi, GridExample};
+use crate::common::ExampleUi;
+use crate::common::GridExample;
 
 #[derive(Default)]
 pub struct Ui {}

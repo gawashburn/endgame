@@ -293,12 +293,7 @@ pub fn render_label(pos: Pos2, style: LabelStyle, label: &str, painter: &Painter
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Draw a 🚫.
-pub fn render_disallowed(
-    center: Pos2,
-    radius: f32,
-    width: f32,
-    painter: &Painter,
-) {
+pub fn render_disallowed(center: Pos2, radius: f32, width: f32, painter: &Painter) {
     let slash_start = center + (egui::Vec2::angled(PI / 4.0) * radius);
     let slash_end = center - (egui::Vec2::angled(PI / 5.0) * radius);
 
@@ -617,291 +612,288 @@ pub fn render_hollow_self_arrow(
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn render_hollow_arrow_coords<SZ: SizedGrid>(
-    szg: &SZ,
-    from: &SZ::Coord,
-    to: &SZ::Coord,
-    style: &HollowArrowStyle,
-    opt_label: Option<&str>,
-    transform: &RectTransform,
-    painter: &Painter,
-) {
-    let from_pos = szg.grid_to_screen(from);
-
-    let width = 12.0 * (szg.inradius() / 64.0);
-    let style = HollowArrowStyle {
-        width: width.min(12.0),
-        ..style.clone()
-    };
-
-    if from == to {
-        render_hollow_self_arrow(
-            transform.transform_pos(glam_vec2_to_egui_pos2(from_pos)),
-            &style,
-            opt_label,
-            painter,
-        );
-        return;
-    }
-
-    let to_pos = szg.grid_to_screen(to);
-    let d = szg.inradius() * 0.33;
-    let (from_adjusted, to_adjusted) = alter_segment_length(from_pos, to_pos, d, -d);
-
-    render_hollow_arrow(
-        transform.transform_pos(glam_vec2_to_egui_pos2(from_adjusted)),
-        transform.transform_pos(glam_vec2_to_egui_pos2(to_adjusted)),
-        &style,
-        opt_label,
-        painter,
-    );
+pub struct GridRenderContext<SZ: SizedGrid> {
+    pub szg: SZ,
+    pub panning_offset: Pos2,
+    pub transform: RectTransform,
+    pub painter: Painter,
+    pub dark_mode: bool,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub fn render_coord_cell<SZ: SizedGrid, T: AsRef<str>>(
-    szg: &SZ,
-    coord: &SZ::Coord,
-    style: &CellStyle,
-    opt_label: Option<T>,
-    transform: &RectTransform,
-    painter: &Painter,
-) {
-    let screen = szg.grid_to_screen(coord);
-    let pos = pos2(screen.x, screen.y);
+impl<SZ: SizedGrid> GridRenderContext<SZ> {
+    pub fn render_hollow_arrow_coords(
+        &self,
+        from: &SZ::Coord,
+        to: &SZ::Coord,
+        style: &HollowArrowStyle,
+        opt_label: Option<&str>,
+    ) {
+        let from_pos = self.szg.grid_to_screen(from);
 
-    let verts = szg.vertices(coord);
-    let points = verts.iter().map(|v| pos2(v.x, v.y)).collect::<Vec<_>>();
+        let width = 12.0 * (self.szg.inradius() / 64.0);
+        let style = HollowArrowStyle {
+            width: width.min(12.0),
+            ..style.clone()
+        };
 
-    let prim_style = match &style.border {
-        // We are either drawing no broder, or drawing it separately as
-        // `egui` does not presently support adjusting the stroke for
-        // different segments of a `PathShape`.
-        CellBorderStyle::Primitive(ps) => ps,
-        CellBorderStyle::PerEdge(_) => &CellPrimitiveBorderStyle::None,
-    };
+        if from == to {
+            render_hollow_self_arrow(
+                self.transform
+                    .transform_pos(glam_vec2_to_egui_pos2(from_pos)),
+                &style,
+                opt_label,
+                &self.painter,
+            );
+            return;
+        }
 
-    let mut render_cell: egui::Shape = PathShape {
-        points: points.clone(),
-        closed: true,
-        fill: style.fill_color.unwrap_or(Color32::TRANSPARENT),
-        stroke: PathStroke {
-            width: prim_style.width(),
-            color: Solid(prim_style.color()),
-            kind: egui::StrokeKind::Middle,
-        },
-    }
-        .into();
+        let to_pos = self.szg.grid_to_screen(to);
+        let d = self.szg.inradius() * 0.33;
+        let (from_adjusted, to_adjusted) = alter_segment_length(from_pos, to_pos, d, -d);
 
-    render_cell.transform(TSTransform {
-        scaling: 1.0,
-        // TODO This seems a bit awkward.
-        translation: transform.transform_pos(Pos2::ZERO).to_vec2(),
-    });
-    painter.add(render_cell);
-
-    // If we are doing per-edge styling, draw it now.
-    if let CellBorderStyle::PerEdge(ref edge_styles) = style.border {
-        let edges = szg.edges(coord);
-        assert!(
-            edge_styles
-                .keys()
-                .collect::<HashSet<_>>()
-                .is_subset(&edges.keys().collect::<HashSet<_>>()),
-            "The edge styles must be a subset of the grid cell edges."
+        render_hollow_arrow(
+            self.transform
+                .transform_pos(glam_vec2_to_egui_pos2(from_adjusted)),
+            self.transform
+                .transform_pos(glam_vec2_to_egui_pos2(to_adjusted)),
+            &style,
+            opt_label,
+            &self.painter,
         );
+    }
 
-        // TODO Seems like there should be a way to zip values by keys?
-        for (dir, edge) in edges.iter() {
-            let style = edge_styles
-                .get(dir)
-                .unwrap_or(&CellPrimitiveBorderStyle::None);
-            painter.line(
-                vec![
-                    transform.transform_pos(glam_vec2_to_egui_pos2(edge.0)),
-                    transform.transform_pos(glam_vec2_to_egui_pos2(edge.1)),
-                ],
-                egui::Stroke {
-                    width: style.width(),
-                    color: style.color(),
-                },
+    pub fn render_coord_cell<T: AsRef<str>>(
+        &self,
+        coord: &SZ::Coord,
+        style: &CellStyle,
+        opt_label: Option<T>,
+    ) {
+        let screen = self.szg.grid_to_screen(coord);
+        let pos = pos2(screen.x, screen.y);
+
+        let verts = self.szg.vertices(coord);
+        let points = verts.iter().map(|v| pos2(v.x, v.y)).collect::<Vec<_>>();
+
+        let prim_style = match &style.border {
+            // We are either drawing no broder, or drawing it separately as
+            // `egui` does not presently support adjusting the stroke for
+            // different segments of a `PathShape`.
+            CellBorderStyle::Primitive(ps) => ps,
+            CellBorderStyle::PerEdge(_) => &CellPrimitiveBorderStyle::None,
+        };
+
+        let mut render_cell: egui::Shape = PathShape {
+            points: points.clone(),
+            closed: true,
+            fill: style.fill_color.unwrap_or(Color32::TRANSPARENT),
+            stroke: PathStroke {
+                width: prim_style.width(),
+                color: Solid(prim_style.color()),
+                kind: egui::StrokeKind::Middle,
+            },
+        }
+            .into();
+
+        render_cell.transform(TSTransform {
+            scaling: 1.0,
+            // TODO This seems a bit awkward.
+            translation: self.transform.transform_pos(Pos2::ZERO).to_vec2(),
+        });
+        self.painter.add(render_cell);
+
+        // If we are doing per-edge styling, draw it now.
+        if let CellBorderStyle::PerEdge(ref edge_styles) = style.border {
+            let edges = self.szg.edges(coord);
+            assert!(
+                edge_styles
+                    .keys()
+                    .collect::<HashSet<_>>()
+                    .is_subset(&edges.keys().collect::<HashSet<_>>()),
+                "The edge styles must be a subset of the grid cell edges."
+            );
+
+            // TODO Seems like there should be a way to zip values by keys?
+            for (dir, edge) in edges.iter() {
+                let style = edge_styles
+                    .get(dir)
+                    .unwrap_or(&CellPrimitiveBorderStyle::None);
+                self.painter.line(
+                    vec![
+                        self.transform.transform_pos(glam_vec2_to_egui_pos2(edge.0)),
+                        self.transform.transform_pos(glam_vec2_to_egui_pos2(edge.1)),
+                    ],
+                    egui::Stroke {
+                        width: style.width(),
+                        color: style.color(),
+                    },
+                );
+            }
+        }
+
+        if let Some((label_style, label)) = style.label.as_ref().zip(opt_label) {
+            let center_vec = self.transform.transform_pos(pos).to_vec2();
+            let center = ((self
+                .transform
+                .transform_pos(*points.last().unwrap())
+                .to_vec2()
+                - center_vec)
+                / 2.0)
+                + center_vec;
+            let font_size = 12.0 * (self.szg.inradius() / 64.0);
+            let style = LabelStyle {
+                font_size: label_style.font_size.min(font_size),
+                ..label_style.clone()
+            };
+            render_label(
+                center.to_pos2(),
+                style.clone(),
+                label.as_ref(),
+                &self.painter,
             );
         }
     }
 
-    if let Some((label_style, label)) = style.label.as_ref().zip(opt_label) {
-        let center_vec = transform.transform_pos(pos).to_vec2();
-        let center = ((transform.transform_pos(*points.last().unwrap()).to_vec2() - center_vec)
-            / 2.0)
-            + center_vec;
-        let font_size = 12.0 * (szg.inradius() / 64.0);
-        let style = LabelStyle {
-            font_size: label_style.font_size.min(font_size),
-            ..label_style.clone()
-        };
-        render_label(center.to_pos2(), style.clone(), label.as_ref(), painter);
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub fn render_shape<SZ: SizedGrid, S: Shape<SZ::Coord>>(
-    dszg: &SZ,
-    shape: &S,
-    style: &CellStyle,
-    inner_border_style: Option<CellPrimitiveBorderStyle>,
-    transform: &RectTransform,
-    painter: &Painter,
-) {
-    // Currently only support primitive border styles.
-    let CellBorderStyle::Primitive(prim) = &style.border else {
-        return;
-    };
-
-    for coord in shape.iter() {
-        // TODO There is perhaps a more efficient means of finding the
-        //   external edges of a shape.
-        let allowed_directions: DirectionSet = coord.allowed_directions(DirectionType::Face);
-        let render_coord = coord.clone();
-        let no_adjacent: DirectionSet = allowed_directions
-            //from_shape_value(square::Coord::range(3), None);
-            .into_iter()
-            .filter(|d| {
-                let dir_coord = coord
-                    .move_in_direction(DirectionType::Face, *d)
-                    .expect("Direction should be valid");
-                !shape.contains(&dir_coord)
-            })
-            .collect();
-
-        // TODO implement add, sub, etc.
-        //let interior = allowed_directions - no_adjacent;
-        let interior = allowed_directions.difference(no_adjacent);
-        let mut edge_style = Vec::new();
-        edge_style.extend(
-            no_adjacent
-                .into_iter()
-                .map(|d| (d, prim.clone())),
-        );
-        edge_style.extend(
-            interior
-                .into_iter()
-                .map(|d| {
-                    (
-                        d,
-                        inner_border_style
-                            .clone()
-                            .unwrap_or(CellPrimitiveBorderStyle::None),
-                    )
-                }),
-        );
-
-        let style = CellStyle {
-            border: CellBorderStyle::PerEdge(edge_style.into_iter().collect()),
-            ..style.clone()
+    pub fn render_shape<S: Shape<SZ::Coord>>(
+        &self,
+        shape: &S,
+        style: &CellStyle,
+        inner_border_style: Option<CellPrimitiveBorderStyle>,
+    ) where
+        S: std::ops::Sub<Output=S>,
+        for<'a> S: std::ops::Sub<&'a S, Output=S>,
+        for<'b> S: std::ops::Sub<&'b S, Output=S>,
+        for<'a, 'b> &'a S: std::ops::Sub<&'b S, Output=S>,
+    {
+        // Currently only support primitive border styles.
+        let CellBorderStyle::Primitive(prim) = &style.border else {
+            return;
         };
 
-        render_coord_cell(dszg, &render_coord, &style, None::<&str>, transform, painter);
-    }
-}
+        for coord in shape.iter() {
+            // TODO There is perhaps a more efficient means of finding the
+            //   external edges of a shape.
+            let allowed_directions: DirectionSet = coord.allowed_directions(DirectionType::Face);
+            let render_coord = coord.clone();
+            let no_adjacent: DirectionSet = allowed_directions
+                //from_shape_value(square::Coord::range(3), None);
+                .into_iter()
+                .filter(|d| {
+                    let dir_coord = coord
+                        .move_in_direction(DirectionType::Face, *d)
+                        .expect("Direction should be valid");
+                    !shape.contains(&dir_coord)
+                })
+                .collect();
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
+            // TODO implement add, sub, etc.
+            //let interior = allowed_directions - no_adjacent;
+            let interior = allowed_directions.difference(no_adjacent);
+            let mut edge_style = Vec::new();
+            edge_style.extend(no_adjacent.into_iter().map(|d| (d, prim.clone())));
+            edge_style.extend(interior.into_iter().map(|d| {
+                (
+                    d,
+                    inner_border_style
+                        .clone()
+                        .unwrap_or(CellPrimitiveBorderStyle::None),
+                )
+            }));
 
-pub fn render_shape_container<SZ: SizedGrid, V, SC: ShapeContainer<SZ::Coord, V>>(
-    dszg: &SZ,
-    shape_container: &SC,
-    style: &CellStyle,
-    inner_border_style: Option<CellPrimitiveBorderStyle>,
-    transform: &RectTransform,
-    painter: &Painter,
-    render_val: impl Fn(&SZ::Coord, &V, &RectTransform, &Painter) -> (),
-)
-where
-    V: Debug + Clone + PartialEq + Eq + Hash,
-{
-    let shape = shape_container.as_shape();
-    render_shape(
-        dszg,
-        &shape,
-        style,
-        inner_border_style,
-        transform,
-        painter,
-    );
-    for (coord, v) in shape_container.iter() {
-        render_val(coord, v, transform, painter);
-    }
-}
+            let style = CellStyle {
+                border: CellBorderStyle::PerEdge(edge_style.into_iter().collect()),
+                ..style.clone()
+            };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub fn render_grid_rect<SZ: SizedGrid>(
-    szg: &SZ,
-    style_for_coord: impl Fn(&SZ::Coord, bool) -> CellStyle,
-    label_for_coord: impl Fn(&SZ::Coord) -> Option<String>,
-    dark_mode: bool,
-    clip: bool,
-    min: glam::Vec2,
-    max: glam::Vec2,
-    grid_offset: Pos2,
-    transform: &RectTransform,
-    painter: &Painter,
-) {
-    // The rectangle is empty, so nothing to render.
-    if !min.cmple(max).all() {
-        return;
+            self.render_coord_cell(&render_coord, &style, None::<&str>);
+        }
     }
 
-    // Optionally clip all drawing with in the specified rectangle.
-    let painter = if clip {
-        let rect = Rect::from_min_max(glam_vec2_to_egui_pos2(min), glam_vec2_to_egui_pos2(max));
-        &painter.with_clip_rect(rect.clone())
-    } else {
-        painter
-    };
+    pub fn render_shape_container<V, SC: ShapeContainer<SZ::Coord, V>>(
+        &self,
+        shape_container: &SC,
+        style: &CellStyle,
+        inner_border_style: Option<CellPrimitiveBorderStyle>,
+        render_val: impl Fn(&SZ::Coord, &V, &RectTransform, &Painter) -> (),
+    ) where
+        V: Debug + Clone + PartialEq + Eq + Hash,
+        SC::Shape: std::ops::Sub<Output=SC::Shape>,
+        for<'a> SC::Shape: std::ops::Sub<&'a SC::Shape, Output=SC::Shape>,
+        for<'b> SC::Shape: std::ops::Sub<&'b SC::Shape, Output=SC::Shape>,
+        for<'a, 'b> &'a SC::Shape: std::ops::Sub<&'b SC::Shape, Output=SC::Shape>,
+    {
+        let shape = shape_container.as_shape();
+        self.render_shape(&shape, style, inner_border_style);
+        for (coord, v) in shape_container.iter() {
+            render_val(coord, v, &self.transform, &self.painter);
+        }
+    }
 
-    let offset_vec = egui_pos2_to_glam_vec2(grid_offset);
-    let min_offset = min + offset_vec;
-    let max_offset = max + offset_vec;
-
-    let mut show_origin = None;
-    // Some debugging code to aid in validating screen_rect_to_grid.
-    //let mut seen: HashSet<dynamic::Coord> = HashSet::new();
-    for coord in szg.screen_rect_to_grid(min_offset, max_offset).unwrap() {
-        //assert!(seen.insert(coord.clone()), "Duplicate coordinate: {coord}");
-
-        // Draw the origin last as depending on the styling it could be
-        // obscured by other cells.
-        if coord.is_origin() {
-            show_origin = Some(coord);
-            continue;
+    pub fn render_grid_rect(
+        &self,
+        style_for_coord: impl Fn(&SZ::Coord, bool) -> CellStyle,
+        label_for_coord: impl Fn(&SZ::Coord) -> Option<String>,
+        clip: bool,
+        min: glam::Vec2,
+        max: glam::Vec2,
+    ) {
+        // The rectangle is empty, so nothing to render.
+        if !min.cmple(max).all() {
+            return;
         }
 
-        render_coord_cell(
-            szg,
-            &coord,
-            &style_for_coord(&coord, dark_mode),
-            label_for_coord(&coord),
-            transform,
-            &painter,
-        );
-    }
+        // TODO No longer works as functions use context painter.
 
-    if let Some(origin) = show_origin {
-        render_coord_cell(
-            szg,
-            &origin,
-            &style_for_coord(&origin, dark_mode),
-            label_for_coord(&origin),
-            transform,
-            &painter,
-        );
+        // Optionally clip all drawing with in the specified rectangle.
+        let painter = if clip {
+            let rect = Rect::from_min_max(glam_vec2_to_egui_pos2(min), glam_vec2_to_egui_pos2(max));
+            &self.painter.with_clip_rect(rect.clone())
+        } else {
+            &self.painter
+        };
+
+        let offset_vec = egui_pos2_to_glam_vec2(self.panning_offset);
+        let min_offset = min + offset_vec;
+        let max_offset = max + offset_vec;
+
+        let mut show_origin = None;
+        // Some debugging code to aid in validating screen_rect_to_grid.
+        //let mut seen: HashSet<dynamic::Coord> = HashSet::new();
+        for coord in self
+            .szg
+            .screen_rect_to_grid(min_offset, max_offset)
+            .unwrap()
+        {
+            //assert!(seen.insert(coord.clone()), "Duplicate coordinate: {coord}");
+
+            // Draw the origin last as depending on the styling it could be
+            // obscured by other cells.
+            if coord.is_origin() {
+                show_origin = Some(coord);
+                continue;
+            }
+
+            self.render_coord_cell(
+                &coord,
+                &style_for_coord(&coord, self.dark_mode),
+                label_for_coord(&coord),
+            );
+        }
+
+        if let Some(origin) = show_origin {
+            self.render_coord_cell(
+                &origin,
+                &style_for_coord(&origin, self.dark_mode),
+                label_for_coord(&origin),
+            );
+        }
     }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct GridView<'l, SZ: SizedGrid> {
+pub struct GridArea<'l, SZ: SizedGrid> {
     pub show_base_grid: bool,
     // TODO Also allow configuring with modifiers, etc.
     pub scroll_wheel_zoom: bool,
@@ -913,27 +905,25 @@ pub struct GridView<'l, SZ: SizedGrid> {
     pub style_for_coord: Box<dyn Fn(&SZ::Coord, bool) -> CellStyle + 'l>,
     pub label_for_coord: Box<dyn Fn(&SZ::Coord) -> Option<String> + 'l>,
     // Function to construct a `SizedGrid` with the given inradius.
+    // This is only needed because DynamicSizedGrid would also need the grid kind
+    // to be constructed.
     szg_fn: Box<dyn Fn(f32) -> SZ + 'l>,
-    // Optional limits on panning the view.
+    // Optional limits on panning the area.
     min_coord: Option<SZ::Coord>,
     max_coord: Option<SZ::Coord>,
     min_inradius: f32,
     max_inradius: f32,
     inradius: &'l mut f32,
     panning_offset: &'l mut Option<Pos2>,
-    // mouse: Pos2,
 }
 
 pub struct GridContext<'l, SZ: SizedGrid> {
     pub ui: &'l mut egui::Ui,
     pub response: egui::Response,
-    pub szg: SZ,
-    pub to_screen_transform: RectTransform,
-    pub dark_mode: bool,
-    pub painter: Painter,
+    pub grc: GridRenderContext<SZ>,
 }
 
-impl<'l, SZ: SizedGrid> GridView<'l, SZ> {
+impl<'l, SZ: SizedGrid> GridArea<'l, SZ> {
     // TODO Variant with fixed inradius and panning?
     pub fn new(
         inradius: &'l mut f32,
@@ -971,8 +961,12 @@ impl<'l, SZ: SizedGrid> GridView<'l, SZ> {
         }
     }
 
-    pub fn render<'a>(&mut self, ui: &mut egui::Ui, mut child: impl FnMut(GridContext<SZ>) -> () + 'a) {
-        // TO Will response.rect match ui.available_size(), if so simplify using that.
+    pub fn render<'a>(
+        &mut self,
+        ui: &mut egui::Ui,
+        mut child: impl FnMut(GridContext<SZ>) -> () + 'a,
+    ) {
+        // TODO Will response.rect match ui.available_size(), if so simplify using that.
 
         let (response, painter) = ui.allocate_painter(ui.available_size(), Sense::hover());
 
@@ -997,21 +991,21 @@ impl<'l, SZ: SizedGrid> GridView<'l, SZ> {
             }
         }
 
+        // TODO Doesn't need to be per render?
         // Construct a dynamic sized grid based upon the current selected
         // grid kind and size.
         let szg = (self.szg_fn)(*self.inradius);
 
-        // TODO Move init out of GridView
+        // TODO Move init out of GridArea?
         if self.panning_offset.is_none() {
-            // Center the grid initially.
+            // If there is no panning value yet, center the grid on the origin.
+            let clip_rect = ui.clip_rect();
             let center = response.rect.center() * -1.0;
-            //  let screen_center =
-            // szg.grid_to_screen(&dynamic::Coord::origin(self.grid_kind));
-            *self.panning_offset = Some(center) //Some((center /*- Pos2::new(screen_center.x, screen_center.y) */).to_pos2());
+            // TODO This may need further adjustment when the area is windowed.
+            *self.panning_offset = Some(Pos2::new(center.x + clip_rect.min.x, center.y))
         }
 
-        // Check if the mouse button was dragged, and if so adjust the
-        // panning offset.
+        // Check if the mouse button was dragged, and if so adjust the panning offset.
         if self.pan_with_drag {
             let prd = ui.interact(response.rect, response.id, Sense::drag());
             if prd.dragged() {
@@ -1039,45 +1033,33 @@ impl<'l, SZ: SizedGrid> GridView<'l, SZ> {
         // panning offset and the size of the painting rectangle to the screen
         // coordinates.  Note that we do not want to use the minimum,
         // coordinate of the rect as the target, as its upper left corner is
-        // always zero for the purposes of painting.
+        // always zero for painting.
         let to_screen_transform = RectTransform::from_to(
             Rect::from_min_size(self.panning_offset.unwrap(), response.rect.size()),
             response.rect,
-            //Rect::from_min_size(Pos2::ZERO, response.rect.size()),
         );
 
-        //  println!("Transform: {:?}", to_screen_transform);
-        //  println!("response.rect: {:?}", response.rect);
+        let grc = GridRenderContext {
+            szg,
+            panning_offset: self.panning_offset.unwrap(),
+            transform: to_screen_transform,
+            painter,
+            dark_mode,
+        };
 
         // Render the base grid if requested.
         if self.show_base_grid {
-            render_grid_rect(
-                &szg,
+            grc.render_grid_rect(
                 self.style_for_coord.deref(),
                 self.label_for_coord.deref(),
-                dark_mode,
-                // TODO clipping rect doesn't match the view rect.
+                // TODO clipping rect doesn't match the view rect?
                 false, /* clip to rect */
                 //true, /* clip to rect */
                 egui_pos2_to_glam_vec2(Pos2::ZERO),
                 egui_pos2_to_glam_vec2(response.rect.size().to_pos2()),
-                //egui_pos2_to_glam_vec2(painter.clip_rect().min),
-                //egui_pos2_to_glam_vec2(painter.clip_rect().max),
-                // egui_pos2_to_glam_vec2(response.rect.min),
-                // egui_pos2_to_glam_vec2(response.rect.max),
-                self.panning_offset.unwrap(),
-                &to_screen_transform,
-                &painter,
             );
         }
 
-        child(GridContext {
-            ui,
-            response,
-            szg,
-            to_screen_transform, //.clone(),
-            dark_mode,
-            painter, //.clone(),
-        });
+        child(GridContext { ui, response, grc });
     }
 }

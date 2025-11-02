@@ -12,3 +12,4 @@ currently parameterizable by the size of the game board.
 
 * In addition to parameterizing the game board size, it would be useful to allow parameterizing by
   the number players.
+* Support changing the underlying grid cell kind.
