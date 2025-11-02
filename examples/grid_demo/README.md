@@ -19,7 +19,7 @@ A fair amount of credit and inspiration goes to the excellent interactive
 visualizations found in [Red Blob Games](https://www.redblobgames.com/)'s
 guide to [hexagonal grids](https://www.redblobgames.com/grids/hexagons/).
 
-A [web based version of this demo](https://gawashburn.github.io/endgame_grid_demo/)
+A [web based version of this demo](https://gawashburn.github.io/endgame/grid_demo/)
 is available for experimentation.
 
 ## Usage

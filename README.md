@@ -19,7 +19,7 @@ currently available. Given my available time, it may take months before I've
 worked my way through everything.
 
 At present the most complete crates are `endgame_direction` and `endgame_grid`. The latter has
-a [web based demo](https://gawashburn.github.io/endgame_grid_demo/) available for experimentation.
+a [web based demo](https://gawashburn.github.io/endgame/grid_demo/) available for experimentation.
 
 ## Table of contents
 
