@@ -1,15 +1,14 @@
 extern crate core;
 
-use egui::ahash::HashSet;
 use egui::emath::{RectTransform, TSTransform};
 use egui::epaint::ColorMode::Solid;
 use egui::epaint::{PathShape, PathStroke};
-use egui::{pos2, Color32, Painter, Pos2, Rect, Sense};
+use egui::{Color32, Painter, Pos2, Rect, Sense, pos2};
 use endgame_direction::{Direction, DirectionSet};
 use endgame_grid::Color::{Four, One, Three, Two};
 use endgame_grid::{Coord, DirectionType, Shape, ShapeContainer, SizedGrid};
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::f32::consts::PI;
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -329,7 +328,7 @@ fn solid_arrow_head_shape(tip: Pos2, angle: f32, color: Color32) -> egui::Shape 
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into()
+    .into()
 }
 
 pub fn render_arrow(
@@ -457,7 +456,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into();
+    .into();
 
     let arrow_shaft: egui::Shape = PathShape {
         points: vec![
@@ -475,7 +474,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into();
+    .into();
 
     let arrow_border: egui::Shape = PathShape {
         points: vec![
@@ -496,7 +495,7 @@ pub fn render_hollow_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into();
+    .into();
 
     painter.add(arrow_shaft);
     painter.add(arrow_head);
@@ -552,7 +551,7 @@ pub fn render_hollow_self_arrow(
                 kind: egui::StrokeKind::Middle,
             },
         }
-            .into();
+        .into();
         painter.add(quad);
     }
     let lend = larc_points.last().unwrap();
@@ -580,7 +579,7 @@ pub fn render_hollow_self_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into();
+    .into();
 
     let mut border = larc_points;
     border.push(glam_vec2_to_egui_pos2(lhead));
@@ -598,7 +597,7 @@ pub fn render_hollow_self_arrow(
             kind: egui::StrokeKind::Middle,
         },
     }
-        .into();
+    .into();
 
     painter.add(arrow_head);
     painter.add(arrow_border);
@@ -694,7 +693,7 @@ impl<SZ: SizedGrid> GridRenderContext<SZ> {
                 kind: egui::StrokeKind::Middle,
             },
         }
-            .into();
+        .into();
 
         render_cell.transform(TSTransform {
             scaling: 1.0,
@@ -761,10 +760,10 @@ impl<SZ: SizedGrid> GridRenderContext<SZ> {
         style: &CellStyle,
         inner_border_style: Option<CellPrimitiveBorderStyle>,
     ) where
-        S: std::ops::Sub<Output=S>,
-        for<'a> S: std::ops::Sub<&'a S, Output=S>,
-        for<'b> S: std::ops::Sub<&'b S, Output=S>,
-        for<'a, 'b> &'a S: std::ops::Sub<&'b S, Output=S>,
+        S: std::ops::Sub<Output = S>,
+        for<'a> S: std::ops::Sub<&'a S, Output = S>,
+        for<'b> S: std::ops::Sub<&'b S, Output = S>,
+        for<'a, 'b> &'a S: std::ops::Sub<&'b S, Output = S>,
     {
         // Currently only support primitive border styles.
         let CellBorderStyle::Primitive(prim) = &style.border else {
@@ -818,10 +817,10 @@ impl<SZ: SizedGrid> GridRenderContext<SZ> {
         render_val: impl Fn(&SZ::Coord, &V, &RectTransform, &Painter) -> (),
     ) where
         V: Debug + Clone + PartialEq + Eq + Hash,
-        SC::Shape: std::ops::Sub<Output=SC::Shape>,
-        for<'a> SC::Shape: std::ops::Sub<&'a SC::Shape, Output=SC::Shape>,
-        for<'b> SC::Shape: std::ops::Sub<&'b SC::Shape, Output=SC::Shape>,
-        for<'a, 'b> &'a SC::Shape: std::ops::Sub<&'b SC::Shape, Output=SC::Shape>,
+        SC::Shape: std::ops::Sub<Output = SC::Shape>,
+        for<'a> SC::Shape: std::ops::Sub<&'a SC::Shape, Output = SC::Shape>,
+        for<'b> SC::Shape: std::ops::Sub<&'b SC::Shape, Output = SC::Shape>,
+        for<'a, 'b> &'a SC::Shape: std::ops::Sub<&'b SC::Shape, Output = SC::Shape>,
     {
         let shape = shape_container.as_shape();
         self.render_shape(&shape, style, inner_border_style);
@@ -975,11 +974,9 @@ impl<'l, SZ: SizedGrid> GridArea<'l, SZ> {
         if self.scroll_wheel_zoom {
             let delta = ui.input(|i| {
                 i.events.iter().find_map(|e| match e {
-                    egui::Event::MouseWheel {
-                        unit: _,
-                        delta,
-                        modifiers: _,
-                    } if response.contains_pointer() => Some(*delta),
+                    egui::Event::MouseWheel { delta, .. } if response.contains_pointer() => {
+                        Some(*delta)
+                    }
                     _ => None,
                 })
             });

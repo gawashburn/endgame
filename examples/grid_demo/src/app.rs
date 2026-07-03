@@ -73,15 +73,15 @@ impl GridDemo {
         ]
     }
 
-    pub fn run(&mut self, ctx: &egui::Context) {
-        egui::SidePanel::left("grid_demo_panel")
+    pub fn run(&mut self, ui: &mut Ui) {
+        egui::Panel::left("grid_demo_panel")
             .resizable(false)
-            .default_width(160.0)
-            .min_width(100.0)
-            .show(ctx, |ui| {
+            .default_size(160.0)
+            .min_size(100.0)
+            .show(ui, |ui| {
                 self.render_panel(ui);
             });
-        egui::CentralPanel::default().show(ctx, |ui| {
+        egui::CentralPanel::default().show(ui, |ui| {
             self.render_view(ui);
         });
     }
@@ -225,7 +225,7 @@ impl GridDemo {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl eframe::App for GridDemo {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        self.run(ctx);
+    fn ui(&mut self, ui: &mut Ui, _frame: &mut eframe::Frame) {
+        self.run(ui);
     }
 }

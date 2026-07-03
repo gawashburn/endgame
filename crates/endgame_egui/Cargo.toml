@@ -15,5 +15,5 @@ itertools = "0.15"
 endgame_direction = { path = "../endgame_direction", version = "0.4" }
 endgame_grid = { path = "../endgame_grid", version = "0.3" }
 mint = "0.5"
-glam = { version = "0.33", features = ["serde", "mint"] }
+glam = { version = "0.32", features = ["serde", "mint"] }
 egui = { version = "0.35", features = ["serde", "mint"] }

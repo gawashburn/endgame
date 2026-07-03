@@ -1,11 +1,10 @@
 use crate::game::{Game, State};
-use rand::Rng;
+use rand::RngExt;
 use rand_chacha::ChaCha20Rng;
-use rand_core::{CryptoRngCore, SeedableRng};
+use rand_core::{Rng, SeedableRng};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::{DefaultHasher, Hash, Hasher};
-//use rand_core::{CryptoRngCore, RngCore, SeedableRng};
 use std::marker::PhantomData;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -291,7 +290,7 @@ impl<G: Game> Strategy<G> for RandomStrategy<G> {
             return Some(None);
         }
         // Randomly select one of the valid moves.
-        let index = (rng.as_rngcore().next_u64() as usize) % moves.len();
+        let index = (rng.next_u64() as usize) % moves.len();
         Some(moves.get(index).cloned())
     }
 }

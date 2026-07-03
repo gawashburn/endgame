@@ -1,5 +1,3 @@
-#![feature(associated_type_defaults)]
-
 // Bring the macros and other important things into scope.
 use endgame_direction::Direction;
 use endgame_grid::triangle::TrianglePoint;

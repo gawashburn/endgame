@@ -1,21 +1,22 @@
 use egui::accesskit::Toggled;
-use egui_kittest::kittest::{NodeT, Queryable};
 use egui_kittest::Harness;
+use egui_kittest::kittest::{NodeT, Queryable};
 use grid_demo::app::GridDemo;
 use std::collections::HashMap;
 
 #[test]
 fn test_demo() {
-    let mut harness = Harness::<GridDemo>::new_state(
-        |ctx, state| {
-            state.run(ctx);
+    let mut harness = Harness::<GridDemo>::new_ui_state(
+        |ui, state| {
+            state.run(ui);
         },
         GridDemo::default(),
     );
 
     harness.run();
 
-    // Iterate through all grid kinds, then all examples that support the given kind.
+    // Iterate through all grid kinds, then all examples that support the given
+    // kind.
     use endgame_grid::dynamic::Kind::*;
     let kind_map = HashMap::from([(Square, "Square"), (Hex, "Hex"), (Triangle, "Triangle")]);
     let examples = GridDemo::examples();
@@ -52,15 +53,11 @@ fn test_demo() {
                     example_radio.accesskit_node().toggled(),
                     Some(Toggled::True)
                 );
-                // TODO Is there a better way to access the central panel?
-                let view = harness.root().children().last().unwrap();
-                // TODO Cannot click in other locations currently.
-                view.click();
+                harness.drag_at(egui::pos2(320.0, 240.0));
             }
             harness.run();
             {
-                let view = harness.root().children().last().unwrap();
-                view.click();
+                harness.drop_at(egui::pos2(320.0, 240.0));
             }
             harness.run();
 
