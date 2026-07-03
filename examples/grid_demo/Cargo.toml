@@ -4,18 +4,18 @@ version = "0.1.0"
 edition = "2024"
 
 [dev-dependencies]
-egui_kittest = "0.32"
+egui_kittest = "0.35"
 
 [dependencies]
 endgame_direction = { path = "../../crates/endgame_direction", version = "0.4" }
 endgame_grid = { path = "../../crates/endgame_grid", version = "0.3" }
 endgame_egui = { path = "../../crates/endgame_egui", version = "0.2" }
 lazy_static = "1.5.0"
-glam = { version = "0.30", features = ["serde", "mint"] }
-egui = { version = "0.32", features = ["serde", "mint"] }
+glam = { version = "0.33", features = ["serde", "mint"] }
+egui = { version = "0.35", features = ["serde", "mint"] }
 env_logger = "0.11"
-eframe = "0.32.1"
-wasm-bindgen = "0.2.100"
-log = "0.4.27"
-web-sys = "0.3.77"
-wasm-bindgen-futures = "0.4.50"
+eframe = "0.35.0"
+wasm-bindgen = "0.2.126"
+log = "0.4.33"
+web-sys = "0.3.103"
+wasm-bindgen-futures = "0.4.76"
